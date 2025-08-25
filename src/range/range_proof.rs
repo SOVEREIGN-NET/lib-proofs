@@ -55,10 +55,9 @@ impl ZkRangeProof {
 
     /// Generate a simple range proof with random blinding
     pub fn generate_simple(value: u64, min_value: u64, max_value: u64) -> Result<Self> {
-        use rand::RngCore;
-        let mut rng = rand::thread_rng();
-        let mut blinding = [0u8; 32];
-        rng.fill_bytes(&mut blinding);
+        use zhtp_crypto::random::SecureRng;
+        let mut rng = SecureRng::new();
+        let blinding = rng.generate_key_material();
         
         Self::generate(value, min_value, max_value, blinding)
     }

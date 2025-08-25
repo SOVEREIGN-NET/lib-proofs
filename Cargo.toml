@@ -1,5 +1,5 @@
 [package]
-name = "zhtp-zk"
+name = "lib-proofs"
 version = "0.1.0"
 edition = "2021"
 authors = ["ZHTP Team"]
@@ -18,14 +18,8 @@ tracing = "0.1"
 # Cryptographic dependencies (using zhtp-crypto package)
 zhtp-crypto = { path = "../zhtp-crypto" }
 
-# Random number generation
-rand = "0.8"
-
 # CPU detection for parallel processing
 num_cpus = "1.16"
-
-# Bulletproof and range proof dependencies
-curve25519-dalek = "4.1"
 
 # Serialization
 bincode = "1.3"
@@ -42,7 +36,7 @@ name = "zk_benchmarks"
 harness = false
 
 [lib]
-name = "zhtp_zk"
+name = "lib_proofs"
 path = "src/lib.rs"
 
 [features]

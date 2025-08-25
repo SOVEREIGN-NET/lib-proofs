@@ -8,7 +8,7 @@
 //! - Identity proof benchmarks
 
 use criterion::{criterion_group, criterion_main, Criterion};
-use zhtp_zk::*;
+use lib_proofs::*;
 
 /// Benchmark transaction proof generation
 fn bench_transaction_proof_generation(c: &mut Criterion) {

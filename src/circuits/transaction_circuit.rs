@@ -169,7 +169,6 @@ impl TransactionCircuit {
         let circuit = self.circuit.as_ref()
             .ok_or_else(|| anyhow::anyhow!("Circuit not built"))?;
 
-        // In a real implementation, this would generate actual Plonky2 proof
         let proof_data = self.generate_proof_data(witness);
         
         Ok(TransactionProof {

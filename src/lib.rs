@@ -18,7 +18,7 @@
 //! ## Example
 //! 
 //! ```rust
-//! use zhtp_zk::{ZkProofSystem, ZkTransactionProver};
+//! use lib_proofs::{ZkProofSystem, ZkTransactionProver};
 //! 
 //! # #[tokio::main]
 //! # async fn main() -> anyhow::Result<()> {
@@ -47,11 +47,11 @@ use anyhow::Result;
 
 // Re-export core types for convenience
 pub use types::*;
-pub use transaction::*;
-pub use merkle::*;
-pub use range::*;
-pub use identity::*;
-pub use plonky2::*;
+pub use transaction::{transaction_proof::*, prover::*};
+pub use merkle::{tree::*, proof_generation::*, verification::*};
+pub use range::{range_proof::*, bulletproofs::*};
+pub use identity::{identity_proof::*, credential_proof::*};
+pub use plonky2::{proof_system::*, recursive::*};
 
 // Re-export prover and verifier modules
 pub use provers::*;

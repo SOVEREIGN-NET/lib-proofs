@@ -973,6 +973,124 @@ impl ZkProofSystem {
     }
 }
 
+// Implement the trait from zhtp-crypto for compatibility
+impl zhtp_crypto::zk_integration::ZkProofSystem for ZkProofSystem {
+    fn new() -> Result<Self> where Self: Sized {
+        ZkProofSystem::new()
+    }
+
+    fn prove_identity(
+        &self,
+        identity_secret: u64,
+        age: u64,
+        jurisdiction_hash: u64,
+        credential_hash: u64,
+        min_age: u64,
+        required_jurisdiction: u64,
+    ) -> Result<zhtp_crypto::zk_integration::Plonky2Proof> {
+        let proof = self.prove_identity(identity_secret, age, jurisdiction_hash, credential_hash, min_age, required_jurisdiction)?;
+        
+        // Convert our Plonky2Proof to the crypto package's format
+        Ok(zhtp_crypto::zk_integration::Plonky2Proof {
+            proof_data: proof.proof,
+            public_inputs: proof.public_inputs,
+            verification_key: proof.verification_key_hash.to_vec(),
+            circuit_digest: proof.private_input_commitment,
+        })
+    }
+
+    fn prove_range(
+        &self,
+        value: u64,
+        blinding_factor: u64,
+        min_value: u64,
+        max_value: u64,
+    ) -> Result<zhtp_crypto::zk_integration::Plonky2Proof> {
+        let proof = self.prove_range(value, blinding_factor, min_value, max_value)?;
+        
+        // Convert our Plonky2Proof to the crypto package's format
+        Ok(zhtp_crypto::zk_integration::Plonky2Proof {
+            proof_data: proof.proof,
+            public_inputs: proof.public_inputs,
+            verification_key: proof.verification_key_hash.to_vec(),
+            circuit_digest: proof.private_input_commitment,
+        })
+    }
+
+    fn prove_storage_access(
+        &self,
+        access_key: u64,
+        requester_secret: u64,
+        data_hash: u64,
+        permission_level: u64,
+        required_permission: u64,
+    ) -> Result<zhtp_crypto::zk_integration::Plonky2Proof> {
+        let proof = self.prove_storage_access(access_key, requester_secret, data_hash, permission_level, required_permission)?;
+        
+        // Convert our Plonky2Proof to the crypto package's format
+        Ok(zhtp_crypto::zk_integration::Plonky2Proof {
+            proof_data: proof.proof,
+            public_inputs: proof.public_inputs,
+            verification_key: proof.verification_key_hash.to_vec(),
+            circuit_digest: proof.private_input_commitment,
+        })
+    }
+
+    fn verify_identity(&self, proof: &zhtp_crypto::zk_integration::Plonky2Proof) -> Result<bool> {
+        // Convert from crypto package format to our format
+        let our_proof = Plonky2Proof {
+            proof: proof.proof_data.clone(),
+            public_inputs: proof.public_inputs.clone(),
+            verification_key_hash: proof.circuit_digest,
+            proof_system: "ZHTP-Optimized-Identity".to_string(),
+            generated_at: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs(),
+            circuit_id: "identity_v1".to_string(),
+            private_input_commitment: proof.circuit_digest,
+        };
+        
+        self.verify_identity(&our_proof)
+    }
+
+    fn verify_range(&self, proof: &zhtp_crypto::zk_integration::Plonky2Proof) -> Result<bool> {
+        // Convert from crypto package format to our format
+        let our_proof = Plonky2Proof {
+            proof: proof.proof_data.clone(),
+            public_inputs: proof.public_inputs.clone(),
+            verification_key_hash: proof.circuit_digest,
+            proof_system: "ZHTP-Optimized-Range".to_string(),
+            generated_at: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs(),
+            circuit_id: "range_v1".to_string(),
+            private_input_commitment: proof.circuit_digest,
+        };
+        
+        self.verify_range(&our_proof)
+    }
+
+    fn verify_storage_access(&self, proof: &zhtp_crypto::zk_integration::Plonky2Proof) -> Result<bool> {
+        // Convert from crypto package format to our format
+        let our_proof = Plonky2Proof {
+            proof: proof.proof_data.clone(),
+            public_inputs: proof.public_inputs.clone(),
+            verification_key_hash: proof.circuit_digest,
+            proof_system: "ZHTP-Optimized-StorageAccess".to_string(),
+            generated_at: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs(),
+            circuit_id: "storage_access_v1".to_string(),
+            private_input_commitment: proof.circuit_digest,
+        };
+        
+        self.verify_storage_access(&our_proof)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

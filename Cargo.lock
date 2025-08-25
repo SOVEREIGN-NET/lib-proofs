@@ -1471,16 +1471,14 @@ dependencies = [
 ]
 
 [[package]]
-name = "zhtp-zk"
+name = "lib-proofs"
 version = "0.1.0"
 dependencies = [
  "ahash",
  "anyhow",
  "bincode",
  "criterion",
- "curve25519-dalek",
  "num_cpus",
- "rand",
  "serde",
  "tokio",
  "tracing",
