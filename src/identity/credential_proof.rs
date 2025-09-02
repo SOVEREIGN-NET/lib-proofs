@@ -6,7 +6,7 @@
 use anyhow::Result;
 use serde::{Serialize, Deserialize};
 use std::collections::HashMap;
-use zhtp_crypto::hashing::hash_blake3;
+use lib_crypto::hashing::hash_blake3;
 
 /// Credential schema definition
 #[derive(Debug, Clone, Serialize, Deserialize)]

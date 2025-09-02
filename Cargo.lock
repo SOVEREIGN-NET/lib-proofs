@@ -616,6 +616,42 @@ dependencies = [
 ]
 
 [[package]]
+name = "lib-crypto"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "blake3",
+ "chacha20poly1305",
+ "curve25519-dalek",
+ "ed25519-dalek",
+ "hex",
+ "hkdf",
+ "pqcrypto-dilithium",
+ "pqcrypto-kyber",
+ "pqcrypto-traits",
+ "rand",
+ "serde",
+ "sha3",
+ "zeroize",
+]
+
+[[package]]
+name = "lib-proofs"
+version = "0.1.0"
+dependencies = [
+ "ahash",
+ "anyhow",
+ "bincode",
+ "criterion",
+ "lib-crypto",
+ "log",
+ "num_cpus",
+ "serde",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.175"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1448,39 +1484,4 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
-]
-
-[[package]]
-name = "zhtp-crypto"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "blake3",
- "chacha20poly1305",
- "curve25519-dalek",
- "ed25519-dalek",
- "hex",
- "hkdf",
- "pqcrypto-dilithium",
- "pqcrypto-kyber",
- "pqcrypto-traits",
- "rand",
- "serde",
- "sha3",
- "zeroize",
-]
-
-[[package]]
-name = "lib-proofs"
-version = "0.1.0"
-dependencies = [
- "ahash",
- "anyhow",
- "bincode",
- "criterion",
- "num_cpus",
- "serde",
- "tokio",
- "tracing",
- "zhtp-crypto",
 ]

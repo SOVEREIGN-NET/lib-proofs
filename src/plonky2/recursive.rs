@@ -132,7 +132,7 @@ impl RecursiveProofBuilder {
         combined_inputs.extend_from_slice(&proof2.public_inputs);
 
         // Generate verification key hash for combined proof
-        let verification_key_hash = zhtp_crypto::hash_blake3(&aggregated_data);
+        let verification_key_hash = lib_crypto::hash_blake3(&aggregated_data);
 
         Ok(Plonky2Proof {
             proof: aggregated_data,
@@ -144,7 +144,7 @@ impl RecursiveProofBuilder {
                 .unwrap()
                 .as_secs(),
             circuit_id: format!("recursive_{}", proof1.circuit_id),
-            private_input_commitment: zhtp_crypto::hash_blake3(&[
+            private_input_commitment: lib_crypto::hash_blake3(&[
                 &proof1.private_input_commitment[..],
                 &proof2.private_input_commitment[..]
             ].concat()),

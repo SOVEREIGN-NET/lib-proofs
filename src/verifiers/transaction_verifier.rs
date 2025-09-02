@@ -189,7 +189,7 @@ impl TransactionVerifier {
 
     /// Calculate proof hash for caching
     fn calculate_proof_hash(&self, proof: &TransactionProof) -> [u8; 32] {
-        use zhtp_crypto::hashing::hash_blake3;
+        use lib_crypto::hashing::hash_blake3;
         
         let mut data = Vec::new();
         data.extend_from_slice(&proof.sender_commitment);

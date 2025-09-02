@@ -6,7 +6,7 @@
 
 use anyhow::Result;
 use serde::{Serialize, Deserialize};
-use zhtp_crypto::hashing::hash_blake3;
+use lib_crypto::hashing::hash_blake3;
 
 /// Merkle tree for ZK inclusion proofs
 #[derive(Debug, Clone, Serialize, Deserialize)]

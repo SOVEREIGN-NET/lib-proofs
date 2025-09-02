@@ -5,7 +5,7 @@
 
 use anyhow::Result;
 use serde::{Serialize, Deserialize};
-use zhtp_crypto::hashing::hash_blake3;
+use lib_crypto::hashing::hash_blake3;
 
 /// Identity attributes that can be proven in zero-knowledge
 #[derive(Debug, Clone, Serialize, Deserialize)]

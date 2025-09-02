@@ -1,17 +1,17 @@
-//! Integration test to verify lib-proofs properly uses zhtp-crypto
+//! Integration test to verify lib-proofs properly uses lib-crypto
 //! 
 //! This test ensures that lib-proofs doesn't implement its own cryptography
-//! and correctly depends on zhtp-crypto for all cryptographic operations.
+//! and correctly depends on lib-crypto for all cryptographic operations.
 
 use lib_proofs::range::range_proof::ZkRangeProof;
 use lib_proofs::range::verification::verify_range_proof;
 use lib_proofs::types::VerificationResult;
-use zhtp_crypto::hashing::hash_blake3;
-use zhtp_crypto::random::SecureRng;
+use lib_crypto::hashing::hash_blake3;
+use lib_crypto::random::SecureRng;
 
 #[test]
-fn test_lib_proofs_uses_zhtp_crypto_hashing() {
-    // Test that lib-proofs uses zhtp-crypto's hash function
+fn test_lib_proofs_uses_lib_crypto_hashing() {
+    // Test that lib-proofs uses lib-crypto's hash function
     let test_data = b"test_data_for_hash_verification";
     let hash_result = hash_blake3(test_data);
     
@@ -24,8 +24,8 @@ fn test_lib_proofs_uses_zhtp_crypto_hashing() {
 }
 
 #[test]
-fn test_lib_proofs_uses_zhtp_crypto_random() {
-    // Test that lib-proofs uses zhtp-crypto's secure random generation
+fn test_lib_proofs_uses_lib_crypto_random() {
+    // Test that lib-proofs uses lib-crypto's secure random generation
     let mut rng = SecureRng::new();
     
     let random1 = rng.generate_key_material();
@@ -41,12 +41,12 @@ fn test_lib_proofs_uses_zhtp_crypto_random() {
 
 #[test]
 fn test_range_proof_generation_uses_crypto() -> anyhow::Result<()> {
-    // Test that range proof generation uses zhtp-crypto properly
+    // Test that range proof generation uses lib-crypto properly
     let value = 100u64;
     let min_value = 0u64;
     let max_value = 1000u64;
     
-    // This should use zhtp-crypto's SecureRng internally
+    // This should use lib-crypto's SecureRng internally
     let proof = ZkRangeProof::generate_simple(value, min_value, max_value)?;
     
     // Verify proof structure
@@ -64,9 +64,9 @@ fn test_no_direct_crypto_dependencies() {
     // This test compilation itself verifies that we don't have direct crypto deps
     // If curve25519-dalek or rand were still direct dependencies, this would fail
     
-    // Verify we can only access crypto through zhtp-crypto
-    let _hash_fn = hash_blake3; // Available through zhtp-crypto
-    let _rng_type = SecureRng::new(); // Available through zhtp-crypto
+    // Verify we can only access crypto through lib-crypto
+    let _hash_fn = hash_blake3; // Available through lib-crypto
+    let _rng_type = SecureRng::new(); // Available through lib-crypto
     
     // These should NOT compile if we had direct dependencies:
     // let _direct_curve = curve25519_dalek::scalar::Scalar::zero(); // Should fail
@@ -80,7 +80,7 @@ fn test_cryptographic_integrity() -> anyhow::Result<()> {
     // Generate test data
     let test_message = b"ZHTP cryptographic integrity test";
     
-    // Hash through zhtp-crypto
+    // Hash through lib-crypto
     let hash = hash_blake3(test_message);
     
     // Generate range proof that should use this hash internally
@@ -101,17 +101,17 @@ fn test_cryptographic_integrity() -> anyhow::Result<()> {
 mod dependency_verification {
     //! Compile-time verification that we don't have direct crypto dependencies
     
-    // These should compile - we have access through zhtp-crypto
-    use zhtp_crypto::hashing::hash_blake3;
-    use zhtp_crypto::random::SecureRng;
+    // These should compile - we have access through lib-crypto
+    use lib_crypto::hashing::hash_blake3;
+    use lib_crypto::random::SecureRng;
     
     // These should NOT be available - direct dependencies removed
     // use curve25519_dalek::scalar::Scalar; // Should cause compile error
     // use rand::thread_rng; // Should cause compile error
     
     #[test]
-    fn verify_only_zhtp_crypto_access() {
-        // Test passes if compilation succeeds with only zhtp-crypto imports
+    fn verify_only_lib_crypto_access() {
+        // Test passes if compilation succeeds with only lib-crypto imports
         let _hash = hash_blake3(b"test");
         let _rng = SecureRng::new();
     }

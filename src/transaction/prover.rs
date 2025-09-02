@@ -3,12 +3,12 @@
 //! Implements the ZkTransactionProver for generating privacy-preserving
 //! transaction proofs using Plonky2 with fallback to cryptographic commitments.
 
-use anyhow::Result;
+use anyhow::{Result, Context};
 use crate::types::ZkProof;
 use crate::transaction::ZkTransactionProof;
 use crate::plonky2::ZkProofSystem;
 use crate::range::ZkRangeProof;
-use zhtp_crypto::hashing::hash_blake3;
+use lib_crypto::hashing::hash_blake3;
 
 /// Zero-knowledge transaction prover (now production-ready with Plonky2)
 pub struct ZkTransactionProver {
@@ -99,83 +99,80 @@ impl ZkTransactionProver {
             });
         }
 
-        // Fallback to legacy proof structure if Plonky2 fails
-        let amount_proof = ZkRangeProof::generate(amount, 1, u64::MAX, sender_blinding)?;
-        let balance_proof = ZkRangeProof::generate(
-            sender_balance - amount - fee,
-            0,
-            u64::MAX,
-            sender_blinding,
-        )?;
+        // Create real Plonky2 proofs for all components
+        let zk_system = ZkProofSystem::new().context("Failed to initialize ZK proof system")?;
+        
+        // Generate Plonky2 proof for transaction amount
+        let amount_plonky2_proof = zk_system.prove_transaction(
+            sender_balance,
+            amount,
+            fee,
+            u64::from_le_bytes([
+                sender_blinding[0], sender_blinding[1], sender_blinding[2], sender_blinding[3],
+                sender_blinding[4], sender_blinding[5], sender_blinding[6], sender_blinding[7],
+            ]),
+            u64::from_le_bytes([
+                nullifier[0], nullifier[1], nullifier[2], nullifier[3],
+                nullifier[4], nullifier[5], nullifier[6], nullifier[7],
+            ]),
+        ).context("Failed to generate amount proof")?;
 
-        // Create nullifier proof using real Plonky2 system
+        // Generate Plonky2 proof for balance range
+        let remaining_balance = sender_balance - amount - fee;
+        let balance_blinding = u64::from_le_bytes([
+            receiver_blinding[0], receiver_blinding[1], receiver_blinding[2], receiver_blinding[3],
+            receiver_blinding[4], receiver_blinding[5], receiver_blinding[6], receiver_blinding[7],
+        ]);
+        let balance_plonky2_proof = zk_system.prove_range(
+            remaining_balance,
+            balance_blinding,
+            0,
+            sender_balance,
+        ).context("Failed to generate balance proof")?;
+
+        // Generate Plonky2 proof for nullifier
+        let nullifier_value = u64::from_le_bytes([
+            nullifier[0], nullifier[1], nullifier[2], nullifier[3],
+            nullifier[4], nullifier[5], nullifier[6], nullifier[7],
+        ]);
+        let nullifier_blinding = u64::from_le_bytes([
+            sender_blinding[8], sender_blinding[9], sender_blinding[10], sender_blinding[11],
+            sender_blinding[12], sender_blinding[13], sender_blinding[14], sender_blinding[15],
+        ]);
+        let nullifier_plonky2_proof = zk_system.prove_range(
+            nullifier_value,
+            nullifier_blinding,
+            1, // Nullifiers must be > 0 
+            u64::MAX,
+        ).context("Failed to generate nullifier proof")?;
+
         let nullifier_commitment = hash_blake3(&nullifier);
-        let transaction_fee = 1000u64; // Default fee
-        let timestamp = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)?
-            .as_secs();
-            
-        let nullifier_proof = if let Ok(zk_system) = ZkProofSystem::new() {
-            // Try to create real Plonky2 proof for nullifier
-            if let Ok(plonky2_proof) = zk_system.prove_transaction(
-                sender_balance,
-                amount,
-                u64::from_le_bytes([
-                    nullifier[0], nullifier[1], nullifier[2], nullifier[3],
-                    nullifier[4], nullifier[5], nullifier[6], nullifier[7],
-                ]),
-                0, // recipient (simplified)
-                transaction_fee,
-            ) {
-                ZkProof {
-                    proof_system: "Plonky2".to_string(),
-                    proof_data: vec![],
-                    public_inputs: nullifier_commitment.to_vec(),
-                    verification_key: vec![],
-                    plonky2_proof: Some(plonky2_proof),
-                    proof: vec![],
-                }
-            } else {
-                // Fallback to cryptographic commitment
-                ZkProof {
-                    proof_system: "Plonky2".to_string(),
-                    proof_data: nullifier_commitment.to_vec(),
-                    public_inputs: nullifier_commitment.to_vec(),
-                    verification_key: hash_blake3(&[nullifier.as_slice(), b"verification_key"].concat()).to_vec(),
-                    plonky2_proof: None,
-                    proof: nullifier_commitment.to_vec(),
-                }
-            }
-        } else {
-            // Fallback to cryptographic commitment
-            ZkProof {
-                proof_system: "Plonky2".to_string(),
-                proof_data: nullifier_commitment.to_vec(),
-                public_inputs: nullifier_commitment.to_vec(),
-                verification_key: hash_blake3(&[nullifier.as_slice(), b"verification_key"].concat()).to_vec(),
-                plonky2_proof: None,
-                proof: nullifier_commitment.to_vec(),
-            }
-        };
 
         Ok(ZkTransactionProof {
             amount_proof: ZkProof {
                 proof_system: "Plonky2".to_string(),
-                proof_data: amount_proof.proof.clone(),
-                public_inputs: amount_proof.commitment.to_vec(),
-                verification_key: hash_blake3(&[amount_proof.commitment.as_slice(), b"amount_vk"].concat()).to_vec(),
-                plonky2_proof: None,
-                proof: amount_proof.proof,
+                proof_data: vec![],
+                public_inputs: vec![amount as u8, (amount >> 8) as u8, (amount >> 16) as u8, (amount >> 24) as u8],
+                verification_key: vec![0x01, 0x02, 0x03, 0x04], // Real verification keys would be generated
+                plonky2_proof: Some(amount_plonky2_proof),
+                proof: vec![],
             },
             balance_proof: ZkProof {
                 proof_system: "Plonky2".to_string(),
-                proof_data: balance_proof.proof.clone(),
-                public_inputs: balance_proof.commitment.to_vec(),
-                verification_key: hash_blake3(&[balance_proof.commitment.as_slice(), b"balance_vk"].concat()).to_vec(),
-                plonky2_proof: None,
-                proof: balance_proof.proof,
+                proof_data: vec![],
+                public_inputs: vec![remaining_balance as u8, (remaining_balance >> 8) as u8],
+                verification_key: vec![0x05, 0x06, 0x07, 0x08], // Real verification keys would be generated
+                plonky2_proof: Some(balance_plonky2_proof),
+                proof: vec![],
             },
-            nullifier_proof,
+            nullifier_proof: ZkProof {
+                proof_system: "Plonky2".to_string(),
+                proof_data: vec![],
+                public_inputs: nullifier_commitment.to_vec(),
+                verification_key: vec![0x09, 0x0A, 0x0B, 0x0C], // Real verification keys would be generated
+                plonky2_proof: Some(nullifier_plonky2_proof),
+                proof: vec![],
+            },
         })
     }
 
@@ -217,8 +214,8 @@ impl ZkTransactionProver {
             
             // Convert to circuit proof format
             let circuit_proof = crate::circuits::TransactionProof {
-                sender_commitment: zhtp_crypto::hashing::hash_blake3(&sender_blinding),
-                receiver_commitment: zhtp_crypto::hashing::hash_blake3(&receiver_blinding),
+                sender_commitment: lib_crypto::hashing::hash_blake3(&sender_blinding),
+                receiver_commitment: lib_crypto::hashing::hash_blake3(&receiver_blinding),
                 amount,
                 fee,
                 nullifier,
@@ -235,28 +232,52 @@ impl ZkTransactionProver {
     /// Verify a transaction proof (prioritizes Plonky2)
     /// Exact implementation from original zk.rs
     pub fn verify_transaction(proof: &ZkTransactionProof) -> Result<bool> {
+        log::info!("🔍 ZkTransactionProver::verify_transaction starting");
+        
         // Check if we have Plonky2 proofs
         if let Some(plonky2_proof) = &proof.amount_proof.plonky2_proof {
+            log::info!("✅ Found Plonky2 amount proof");
             if let Ok(zk_system) = ZkProofSystem::new() {
+                log::info!("✅ ZkProofSystem initialized successfully");
+                
                 let amount_valid = zk_system.verify_transaction(plonky2_proof)?;
+                log::info!("🔍 Amount proof verification result: {}", amount_valid);
                 
                 if let Some(range_proof) = &proof.balance_proof.plonky2_proof {
+                    log::info!("✅ Found Plonky2 balance proof");
                     let balance_valid = zk_system.verify_range(range_proof)?;
+                    log::info!("🔍 Balance proof verification result: {}", balance_valid);
                     
                     if let Some(nullifier_range_proof) = &proof.nullifier_proof.plonky2_proof {
+                        log::info!("✅ Found Plonky2 nullifier proof");
                         let nullifier_valid = zk_system.verify_range(nullifier_range_proof)?;
+                        log::info!("🔍 Nullifier proof verification result: {}", nullifier_valid);
                         
-                        return Ok(amount_valid && balance_valid && nullifier_valid);
+                        let final_result = amount_valid && balance_valid && nullifier_valid;
+                        log::info!("🔍 Final verification result: {} (amount: {}, balance: {}, nullifier: {})", 
+                                  final_result, amount_valid, balance_valid, nullifier_valid);
+                        return Ok(final_result);
+                    } else {
+                        log::error!("❌ Missing Plonky2 nullifier proof");
                     }
+                } else {
+                    log::error!("❌ Missing Plonky2 balance proof");
                 }
+            } else {
+                log::error!("❌ Failed to initialize ZkProofSystem");
             }
+        } else {
+            log::error!("❌ Missing Plonky2 amount proof");
         }
 
+        log::info!("🔄 Falling back to cryptographic verification");
         // Fallback to cryptographic verification
         // Verify all three proof components have valid structure  
         if proof.amount_proof.proof_system != "Plonky2" ||
            proof.balance_proof.proof_system != "Plonky2" ||
            proof.nullifier_proof.proof_system != "Plonky2" {
+            log::error!("❌ Invalid proof system identifiers: amount='{}', balance='{}', nullifier='{}'",
+                       proof.amount_proof.proof_system, proof.balance_proof.proof_system, proof.nullifier_proof.proof_system);
             return Ok(false);
         }
 

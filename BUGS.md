@@ -1,7 +1,7 @@
 ZKproofs do not use real zkproofs, and instead use a sort of cryptographic verification
 
 
-Searched text for zk|zero.knowledge|commit|blind|proof (**/packages/zhtp-crypto/src/post_quantum/**), no results
+Searched text for zk|zero.knowledge|commit|blind|proof (**/packages/lib-crypto/src/post_quantum/**), no results
 
 Read post_quantum
 
@@ -9,10 +9,10 @@ Read mod.rs
 
 Read constants.rs
 
-ZK Post-Quantum Primitives Currently in zhtp-crypto: None
-Finding: zhtp-crypto currently has NO ZK-specific post-quantum primitives.
+ZK Post-Quantum Primitives Currently in lib-crypto: None
+Finding: lib-crypto currently has NO ZK-specific post-quantum primitives.
 
-What EXISTS in zhtp-crypto:
+What EXISTS in lib-crypto:
 1. Basic Post-Quantum Cryptography:
 
 dilithium.rs - CRYSTALS-Dilithium signatures

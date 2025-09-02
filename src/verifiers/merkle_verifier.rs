@@ -49,7 +49,7 @@ pub fn verify_with_tree_detailed(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use zhtp_crypto::hashing::hash_blake3;
+    use lib_crypto::hashing::hash_blake3;
 
     #[test]
     fn test_merkle_verification() {

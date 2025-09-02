@@ -6,7 +6,7 @@
 
 use anyhow::Result;
 use serde::{Serialize, Deserialize};
-use zhtp_crypto::hashing::hash_blake3;
+use lib_crypto::hashing::hash_blake3;
 
 /// Zero-knowledge range proof
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -55,7 +55,7 @@ impl ZkRangeProof {
 
     /// Generate a simple range proof with random blinding
     pub fn generate_simple(value: u64, min_value: u64, max_value: u64) -> Result<Self> {
-        use zhtp_crypto::random::SecureRng;
+        use lib_crypto::random::SecureRng;
         let mut rng = SecureRng::new();
         let blinding = rng.generate_key_material();
         

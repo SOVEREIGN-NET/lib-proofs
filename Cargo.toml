@@ -14,9 +14,10 @@ categories = ["cryptography", "mathematics"]
 anyhow = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tracing = "0.1"
+log = "0.4"
 
-# Cryptographic dependencies (using zhtp-crypto package)
-zhtp-crypto = { path = "../zhtp-crypto" }
+# Cryptographic dependencies (using lib-crypto package)
+lib-crypto = { path = "../lib-crypto" }
 
 # CPU detection for parallel processing
 num_cpus = "1.16"

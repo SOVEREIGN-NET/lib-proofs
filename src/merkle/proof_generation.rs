@@ -218,7 +218,7 @@ fn unpack_indices(packed: u64, count: usize) -> Vec<bool> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use zhtp_crypto::hashing::hash_blake3;
+    use lib_crypto::hashing::hash_blake3;
 
     #[test]
     fn test_generate_proof() {

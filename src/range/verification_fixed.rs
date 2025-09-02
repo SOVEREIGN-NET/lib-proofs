@@ -4,7 +4,7 @@
 //! validation including commitment verification and range checking.
 
 use anyhow::Result;
-use zhtp_crypto::hashing::hash_blake3;
+use lib_crypto::hashing::hash_blake3;
 use crate::types::{VerificationResult, ZkProofType};
 use super::{ZkRangeProof, BulletproofRangeProof, AggregatedBulletproof};
 

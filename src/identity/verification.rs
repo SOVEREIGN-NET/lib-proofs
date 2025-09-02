@@ -5,8 +5,8 @@
 
 use anyhow::Result;
 use serde::{Serialize, Deserialize};
-use zhtp_crypto::hashing::hash_blake3;
-use zhtp_crypto::verification::verify_signature;
+use lib_crypto::hashing::hash_blake3;
+use lib_crypto::verification::verify_signature;
 use crate::types::VerificationResult;
 use super::{ZkIdentityProof, ZkCredentialProof, CredentialSchema};
 use crate::identity::identity_proof::BatchIdentityProof;
@@ -436,29 +436,29 @@ fn verify_issuer_signature(proof: &ZkCredentialProof, schema: &CredentialSchema)
     
     let message_hash = hash_blake3(&signed_data);
     
-    // Use real signature verification from zhtp-crypto
-    println!("About to verify signature with zhtp-crypto...");
+    // Use real signature verification from lib-crypto
+    println!("About to verify signature with lib-crypto...");
     println!("Message hash: {:?}", &message_hash[0..8]);
     println!("Signature: {:?}", &proof.issuer_signature[0..8]);
     println!("Public key: {:?}", &issuer_public_key[0..8]);
     
-    // For test cases with zero public keys, skip zhtp-crypto verification
+    // For test cases with zero public keys, skip lib-crypto verification
     if issuer_public_key != [0u8; 32] {
         match verify_signature(&message_hash, &proof.issuer_signature, &issuer_public_key) {
             Ok(valid) => {
-                println!("zhtp-crypto verification returned: {}", valid);
+                println!("lib-crypto verification returned: {}", valid);
                 if valid {
                     return Ok(true);
                 }
-                // If zhtp-crypto returned Ok(false), try fallback methods
-                println!("zhtp-crypto returned false, trying fallback verification...");
+                // If lib-crypto returned Ok(false), try fallback methods
+                println!("lib-crypto returned false, trying fallback verification...");
             },
             Err(e) => {
-                println!("zhtp-crypto verification failed with error: {:?}", e);
+                println!("lib-crypto verification failed with error: {:?}", e);
             }
         }
     } else {
-        println!("Zero public key detected, skipping zhtp-crypto and using fallback verification");
+        println!("Zero public key detected, skipping lib-crypto and using fallback verification");
     }
     
     // Enhanced fallback verification for development/test signatures

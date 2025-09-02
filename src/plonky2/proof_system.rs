@@ -5,7 +5,7 @@
 
 use anyhow::{Result, anyhow};
 use serde::{Serialize, Deserialize};
-use zhtp_crypto::hashing::hash_blake3;
+use lib_crypto::hashing::hash_blake3;
 use std::collections::HashMap;
 use tracing::info;
 
@@ -499,6 +499,15 @@ impl ZkProofSystem {
         
         let proof_hash = hash_blake3(&proof_data);
         
+        // Calculate private input commitment for audit trail
+        // Using available function parameters (sender_secret is u64 in this optimized version)
+        let private_inputs = [
+            &sender_balance.to_le_bytes()[..],
+            &sender_secret.to_le_bytes()[..],
+            &nullifier_seed.to_le_bytes()[..],
+        ].concat();
+        let private_input_commitment = hash_blake3(&private_inputs);
+        
         Ok(Plonky2Proof {
             proof: proof_data,
             public_inputs: vec![amount, fee, nullifier_seed],
@@ -506,52 +515,125 @@ impl ZkProofSystem {
             proof_system: "ZHTP-Optimized-Transaction".to_string(),
             circuit_id: "optimized-transaction".to_string(),
             generated_at: std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)?.as_secs(),
-            private_input_commitment: [0u8; 32], // Hash of private inputs for audit
+            private_input_commitment,
         })
     }
 
     /// Verify transaction proof (production-optimized)
     pub fn verify_transaction(&self, proof: &Plonky2Proof) -> Result<bool> {
+        log::info!("🔍 ZkProofSystem::verify_transaction starting");
+        
         if !self.initialized {
+            log::error!("❌ ZkProofSystem not initialized");
             return Ok(false);
         }
+        log::info!("✅ ZkProofSystem is initialized");
 
         // Verify proof structure and integrity
         if proof.proof.len() < 40 { // 5 * 8 bytes minimum
+            log::error!("❌ Proof too short: {} bytes (minimum 40)", proof.proof.len());
             return Ok(false);
         }
+        log::info!("✅ Proof length valid: {} bytes", proof.proof.len());
 
         if proof.proof_system != "ZHTP-Optimized-Transaction" {
+            log::error!("❌ Invalid proof system: '{}' (expected 'ZHTP-Optimized-Transaction')", proof.proof_system);
             return Ok(false);
         }
+        log::info!("✅ Proof system valid: '{}'", proof.proof_system);
 
         // Verify public inputs are consistent
         if proof.public_inputs.len() != 3 {
+            log::error!("❌ Invalid public inputs length: {} (expected 3)", proof.public_inputs.len());
             return Ok(false);
         }
+        log::info!("✅ Public inputs length valid: {}", proof.public_inputs.len());
 
         // Extract and validate transaction data
         if proof.proof.len() >= 40 {
-            let sender_balance = u64::from_le_bytes([
-                proof.proof[0], proof.proof[1], proof.proof[2], proof.proof[3],
-                proof.proof[4], proof.proof[5], proof.proof[6], proof.proof[7],
-            ]);
-            let amount = u64::from_le_bytes([
-                proof.proof[8], proof.proof[9], proof.proof[10], proof.proof[11],
-                proof.proof[12], proof.proof[13], proof.proof[14], proof.proof[15],
-            ]);
-            let fee = u64::from_le_bytes([
-                proof.proof[16], proof.proof[17], proof.proof[18], proof.proof[19],
-                proof.proof[20], proof.proof[21], proof.proof[22], proof.proof[23],
-            ]);
+            // Check if this is a transaction circuit proof (longer format) or ZK system proof (shorter format)
+            if proof.proof.len() >= 2048 {
+                log::info!("🔍 Using transaction circuit format (long proof: {} bytes)", proof.proof.len());
+                // Transaction circuit format: sender_balance(0-8), receiver_balance(8-16), amount(16-24), fee(24-32)
+                let sender_balance = u64::from_le_bytes([
+                    proof.proof[0], proof.proof[1], proof.proof[2], proof.proof[3],
+                    proof.proof[4], proof.proof[5], proof.proof[6], proof.proof[7],
+                ]);
+                let amount = u64::from_le_bytes([
+                    proof.proof[16], proof.proof[17], proof.proof[18], proof.proof[19],
+                    proof.proof[20], proof.proof[21], proof.proof[22], proof.proof[23],
+                ]);
+                let fee = u64::from_le_bytes([
+                    proof.proof[24], proof.proof[25], proof.proof[26], proof.proof[27],
+                    proof.proof[28], proof.proof[29], proof.proof[30], proof.proof[31],
+                ]);
 
-            // Validate transaction constraints
-            if amount + fee > sender_balance {
-                return Ok(false);
-            }
+                log::info!("🔍 Extracted values: sender_balance={}, amount={}, fee={}", sender_balance, amount, fee);
 
-            if amount == 0 {
-                return Ok(false);
+                // For transaction circuit format, public inputs contain [amount, fee, nullifier_u64]
+                // We only validate the first two since nullifier validation is different
+                if proof.public_inputs.len() >= 2 {
+                    if amount != proof.public_inputs[0] {
+                        log::error!("❌ Amount mismatch: proof={}, public_input={}", amount, proof.public_inputs[0]);
+                        return Ok(false);
+                    }
+                    if fee != proof.public_inputs[1] {
+                        log::error!("❌ Fee mismatch: proof={}, public_input={}", fee, proof.public_inputs[1]);
+                        return Ok(false);
+                    }
+                    log::info!("✅ Amount and fee match public inputs");
+                }
+
+                // Validate transaction constraints
+                if amount + fee > sender_balance {
+                    log::error!("❌ Insufficient balance: amount({}) + fee({}) = {} > sender_balance({})", 
+                               amount, fee, amount + fee, sender_balance);
+                    return Ok(false);
+                }
+                log::info!("✅ Balance constraint satisfied");
+
+                if amount == 0 {
+                    log::error!("❌ Zero amount transaction not allowed");
+                    return Ok(false);
+                }
+                log::info!("✅ Non-zero amount: {}", amount);
+            } else {
+                log::info!("🔍 Using ZK system format (short proof: {} bytes)", proof.proof.len());
+                // ZK system native format: sender_balance(0-8), amount(8-16), fee(16-24)
+                let sender_balance = u64::from_le_bytes([
+                    proof.proof[0], proof.proof[1], proof.proof[2], proof.proof[3],
+                    proof.proof[4], proof.proof[5], proof.proof[6], proof.proof[7],
+                ]);
+                let amount = u64::from_le_bytes([
+                    proof.proof[8], proof.proof[9], proof.proof[10], proof.proof[11],
+                    proof.proof[12], proof.proof[13], proof.proof[14], proof.proof[15],
+                ]);
+                let fee = u64::from_le_bytes([
+                    proof.proof[16], proof.proof[17], proof.proof[18], proof.proof[19],
+                    proof.proof[20], proof.proof[21], proof.proof[22], proof.proof[23],
+                ]);
+
+                log::info!("🔍 Extracted values (ZK format): sender_balance={}, amount={}, fee={}", sender_balance, amount, fee);
+
+                // For ZK system format, validate exact match with public inputs
+                if proof.public_inputs.len() >= 3 {
+                    if amount != proof.public_inputs[0] {
+                        return Ok(false);
+                    }
+                    if fee != proof.public_inputs[1] {
+                        return Ok(false);
+                    }
+                    // Third input is nullifier_seed for ZK format
+                }
+
+                // Validate transaction constraints
+                if amount + fee > sender_balance {
+                    return Ok(false);
+                }
+
+                if amount == 0 {
+                    return Ok(false);
+                }
             }
 
             return Ok(true);
@@ -973,8 +1055,8 @@ impl ZkProofSystem {
     }
 }
 
-// Implement the trait from zhtp-crypto for compatibility
-impl zhtp_crypto::zk_integration::ZkProofSystem for ZkProofSystem {
+// Implement the trait from lib-crypto for compatibility
+impl lib_crypto::zk_integration::ZkProofSystem for ZkProofSystem {
     fn new() -> Result<Self> where Self: Sized {
         ZkProofSystem::new()
     }
@@ -987,11 +1069,11 @@ impl zhtp_crypto::zk_integration::ZkProofSystem for ZkProofSystem {
         credential_hash: u64,
         min_age: u64,
         required_jurisdiction: u64,
-    ) -> Result<zhtp_crypto::zk_integration::Plonky2Proof> {
+    ) -> Result<lib_crypto::zk_integration::Plonky2Proof> {
         let proof = self.prove_identity(identity_secret, age, jurisdiction_hash, credential_hash, min_age, required_jurisdiction)?;
         
         // Convert our Plonky2Proof to the crypto package's format
-        Ok(zhtp_crypto::zk_integration::Plonky2Proof {
+        Ok(lib_crypto::zk_integration::Plonky2Proof {
             proof_data: proof.proof,
             public_inputs: proof.public_inputs,
             verification_key: proof.verification_key_hash.to_vec(),
@@ -1005,11 +1087,11 @@ impl zhtp_crypto::zk_integration::ZkProofSystem for ZkProofSystem {
         blinding_factor: u64,
         min_value: u64,
         max_value: u64,
-    ) -> Result<zhtp_crypto::zk_integration::Plonky2Proof> {
+    ) -> Result<lib_crypto::zk_integration::Plonky2Proof> {
         let proof = self.prove_range(value, blinding_factor, min_value, max_value)?;
         
         // Convert our Plonky2Proof to the crypto package's format
-        Ok(zhtp_crypto::zk_integration::Plonky2Proof {
+        Ok(lib_crypto::zk_integration::Plonky2Proof {
             proof_data: proof.proof,
             public_inputs: proof.public_inputs,
             verification_key: proof.verification_key_hash.to_vec(),
@@ -1024,11 +1106,11 @@ impl zhtp_crypto::zk_integration::ZkProofSystem for ZkProofSystem {
         data_hash: u64,
         permission_level: u64,
         required_permission: u64,
-    ) -> Result<zhtp_crypto::zk_integration::Plonky2Proof> {
+    ) -> Result<lib_crypto::zk_integration::Plonky2Proof> {
         let proof = self.prove_storage_access(access_key, requester_secret, data_hash, permission_level, required_permission)?;
         
         // Convert our Plonky2Proof to the crypto package's format
-        Ok(zhtp_crypto::zk_integration::Plonky2Proof {
+        Ok(lib_crypto::zk_integration::Plonky2Proof {
             proof_data: proof.proof,
             public_inputs: proof.public_inputs,
             verification_key: proof.verification_key_hash.to_vec(),
@@ -1036,7 +1118,7 @@ impl zhtp_crypto::zk_integration::ZkProofSystem for ZkProofSystem {
         })
     }
 
-    fn verify_identity(&self, proof: &zhtp_crypto::zk_integration::Plonky2Proof) -> Result<bool> {
+    fn verify_identity(&self, proof: &lib_crypto::zk_integration::Plonky2Proof) -> Result<bool> {
         // Convert from crypto package format to our format
         let our_proof = Plonky2Proof {
             proof: proof.proof_data.clone(),
@@ -1054,7 +1136,7 @@ impl zhtp_crypto::zk_integration::ZkProofSystem for ZkProofSystem {
         self.verify_identity(&our_proof)
     }
 
-    fn verify_range(&self, proof: &zhtp_crypto::zk_integration::Plonky2Proof) -> Result<bool> {
+    fn verify_range(&self, proof: &lib_crypto::zk_integration::Plonky2Proof) -> Result<bool> {
         // Convert from crypto package format to our format
         let our_proof = Plonky2Proof {
             proof: proof.proof_data.clone(),
@@ -1072,7 +1154,7 @@ impl zhtp_crypto::zk_integration::ZkProofSystem for ZkProofSystem {
         self.verify_range(&our_proof)
     }
 
-    fn verify_storage_access(&self, proof: &zhtp_crypto::zk_integration::Plonky2Proof) -> Result<bool> {
+    fn verify_storage_access(&self, proof: &lib_crypto::zk_integration::Plonky2Proof) -> Result<bool> {
         // Convert from crypto package format to our format
         let our_proof = Plonky2Proof {
             proof: proof.proof_data.clone(),
