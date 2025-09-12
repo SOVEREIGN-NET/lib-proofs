@@ -1,18 +1,18 @@
-//! Zero-knowledge range proof implementation
+//! Zero-knowledge range proof implementation for unified ZK system
 //! 
 //! Implements range proofs that allow proving a committed value lies within
-//! a specified range without revealing the exact value, using Bulletproof-style
-//! constructions with cryptographic commitments.
+//! a specified range without revealing the exact value, using unified Plonky2 backend.
 
 use anyhow::Result;
 use serde::{Serialize, Deserialize};
 use lib_crypto::hashing::hash_blake3;
+use crate::types::zk_proof::ZkProof;
 
-/// Zero-knowledge range proof
+/// Zero-knowledge range proof using unified Plonky2 system
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ZkRangeProof {
-    /// Proof data (Bulletproof-compatible format)
-    pub proof: Vec<u8>,
+    /// Unified ZK proof for range verification
+    pub proof: ZkProof,
     /// Commitment to the value
     pub commitment: [u8; 32],
     /// Minimum value in the range
@@ -22,31 +22,21 @@ pub struct ZkRangeProof {
 }
 
 impl ZkRangeProof {
-    /// Generate a range proof for a value
+    /// Generate a range proof for a value using unified ZK system
     pub fn generate(value: u64, min_value: u64, max_value: u64, blinding: [u8; 32]) -> Result<Self> {
         if value < min_value || value > max_value {
             return Err(anyhow::anyhow!("Value out of range: {} not in [{}, {}]", value, min_value, max_value));
         }
 
-        // Production range proof implementation with cryptographic commitments
+        // Generate commitment to the value
         let commitment = hash_blake3(&[&value.to_le_bytes()[..], &blinding[..]].concat());
         
-        // Create structured proof with range validation
-        let mut proof_data = Vec::with_capacity(672);
-        proof_data.extend_from_slice(&value.to_le_bytes());
-        proof_data.extend_from_slice(&min_value.to_le_bytes());
-        proof_data.extend_from_slice(&max_value.to_le_bytes());
-        proof_data.extend_from_slice(&blinding);
-        
-        // Generate Fiat-Shamir challenge for non-interactive proof
-        let challenge = hash_blake3(&[&commitment[..], &proof_data[..]].concat());
-        proof_data.extend_from_slice(&challenge[..]);
-        
-        // Pad to standard Bulletproofs size (672 bytes)
-        proof_data.resize(672, 0);
+        // Use unified ZK system via Plonky2
+        let public_inputs = vec![value, min_value, max_value];
+        let proof = ZkProof::from_public_inputs(public_inputs)?;
         
         Ok(ZkRangeProof {
-            proof: proof_data,
+            proof,
             commitment,
             min_value,
             max_value,
@@ -71,6 +61,11 @@ impl ZkRangeProof {
     pub fn generate_bounded_pow2(value: u64, max_bits: u8, blinding: [u8; 32]) -> Result<Self> {
         let max_value = (1u64 << max_bits) - 1;
         Self::generate(value, 0, max_value, blinding)
+    }
+
+    /// Verify the range proof using unified ZK system
+    pub fn verify(&self) -> Result<bool> {
+        self.proof.verify()
     }
 
     /// Get the range size
@@ -99,12 +94,12 @@ impl ZkRangeProof {
 
     /// Get proof size in bytes
     pub fn proof_size(&self) -> usize {
-        self.proof.len()
+        self.proof.size()
     }
 
-    /// Check if this is a standard Bulletproof size
-    pub fn is_standard_bulletproof(&self) -> bool {
-        self.proof.len() == 672
+    /// Check if this proof is using the unified system (always true)
+    pub fn is_unified_system(&self) -> bool {
+        true
     }
 }
 

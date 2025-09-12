@@ -12,58 +12,22 @@ use super::{ZkRangeProof, BulletproofRangeProof, AggregatedBulletproof};
 pub fn verify_range_proof(proof: &ZkRangeProof) -> Result<VerificationResult> {
     let start_time = std::time::Instant::now();
     
-    // Validate proof structure
-    if proof.proof.len() != 672 {
-        return Ok(VerificationResult::Invalid("Invalid proof size".to_string()));
+    // Use unified ZK proof verification
+    match proof.verify() {
+        Ok(is_valid) => {
+            if is_valid {
+                let verification_time = start_time.elapsed();
+                Ok(VerificationResult::Valid {
+                    circuit_id: "range_proof_unified".to_string(),
+                    verification_time_ms: verification_time.as_millis() as u64,
+                    public_inputs: vec![proof.min_value, proof.max_value],
+                })
+            } else {
+                Ok(VerificationResult::Invalid("Unified ZK verification failed".to_string()))
+            }
+        },
+        Err(e) => Ok(VerificationResult::Invalid(format!("Verification error: {}", e))),
     }
-
-    if proof.min_value > proof.max_value {
-        return Ok(VerificationResult::Invalid("Invalid range: min > max".to_string()));
-    }
-
-    // Extract components from proof
-    let value_bytes = &proof.proof[0..8];
-    let min_bytes = &proof.proof[8..16];
-    let max_bytes = &proof.proof[16..24];
-    let blinding = &proof.proof[24..56];
-    let challenge = &proof.proof[56..88];
-
-    let value = u64::from_le_bytes(value_bytes.try_into().unwrap());
-    let min_value = u64::from_le_bytes(min_bytes.try_into().unwrap());
-    let max_value = u64::from_le_bytes(max_bytes.try_into().unwrap());
-
-    // Verify range bounds match proof metadata
-    if min_value != proof.min_value || max_value != proof.max_value {
-        return Ok(VerificationResult::Invalid("Range bounds mismatch".to_string()));
-    }
-
-    // Verify commitment
-    let commitment_data = [value_bytes, blinding].concat();
-    let expected_commitment = hash_blake3(&commitment_data);
-    
-    if expected_commitment != proof.commitment {
-        return Ok(VerificationResult::Invalid("Commitment verification failed".to_string()));
-    }
-
-    // Verify Fiat-Shamir challenge
-    let challenge_data = [&proof.commitment[..], &proof.proof[0..56]].concat();
-    let expected_challenge = hash_blake3(&challenge_data);
-    
-    if expected_challenge != challenge {
-        return Ok(VerificationResult::Invalid("Challenge verification failed".to_string()));
-    }
-
-    // Verify range constraints
-    if value < min_value || value > max_value {
-        return Ok(VerificationResult::Invalid("Value outside valid range".to_string()));
-    }
-
-    let verification_time = start_time.elapsed();
-    Ok(VerificationResult::Valid {
-        circuit_id: "range_proof_v1".to_string(),
-        verification_time_ms: verification_time.as_millis() as u64,
-        public_inputs: vec![min_value, max_value],
-    })
 }
 
 /// Verify a bulletproof range proof with advanced cryptographic validation

@@ -7,7 +7,6 @@ use anyhow::{Result, Context};
 use crate::types::ZkProof;
 use crate::transaction::ZkTransactionProof;
 use crate::plonky2::ZkProofSystem;
-use crate::range::ZkRangeProof;
 use lib_crypto::hashing::hash_blake3;
 
 /// Zero-knowledge transaction prover (now production-ready with Plonky2)

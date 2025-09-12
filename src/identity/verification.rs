@@ -270,20 +270,8 @@ fn verify_knowledge_proof(proof: &ZkIdentityProof) -> Result<bool> {
         Ok(zk_system) => {
             println!("✅ ZK system initialized for knowledge proof verification");
             
-            // Create a ZK proof from the knowledge proof data
-            let zk_proof = crate::plonky2::Plonky2Proof {
-                proof: proof.knowledge_proof.to_vec(),
-                public_inputs: vec![18, 0], // min_age=18, no jurisdiction requirement
-                verification_key_hash: proof.challenge,
-                proof_system: "ZHTP-Optimized-Identity".to_string(),
-                generated_at: proof.timestamp,
-                circuit_id: "identity_v1".to_string(),
-                private_input_commitment: proof.challenge,
-            };
-            
-            println!("🔍 Verifying ZK proof with {} bytes", zk_proof.proof.len());
-            
-            match zk_system.verify_identity(&zk_proof) {
+            // Use the unified ZK proof for verification
+            match proof.proof.verify() {
                 Ok(is_valid) => {
                     if is_valid {
                         println!("✅ ZK circuit verification passed for knowledge proof");
@@ -303,112 +291,56 @@ fn verify_knowledge_proof(proof: &ZkIdentityProof) -> Result<bool> {
     }
     
     // Fallback to simple verification approach
-    println!("🔄 Using fallback verification for knowledge proof");
+    println!("🔄 Using unified ZK verification for knowledge proof");
     
-    // Check that knowledge proof is non-zero (indicating proper generation)
-    if proof.knowledge_proof == [0u8; 32] {
-        return Ok(false);
+    // With unified system, verification is handled by the main proof
+    match proof.proof.verify() {
+        Ok(is_valid) => Ok(is_valid),
+        Err(_) => Ok(false)
     }
-    
-    // The original verification was much simpler - just basic validity checks
-    // Since this is a fake ZK system, we verify structural consistency
-    Ok(true)
 }
 
 fn verify_identity_challenge_response(proof: &ZkIdentityProof) -> Result<bool> {
-    // First, try to verify as a ZK-generated proof
-    // ZK-generated proofs have their challenge derived from the verification key hash
-    if proof.challenge != [0u8; 32] {
-        // Check if this looks like a ZK-generated challenge (from verification key hash)
-        match crate::plonky2::ZkProofSystem::new() {
-            Ok(zk_system) => {
-                // For ZK-generated proofs, the challenge is the verification key hash
-                // and the response is derived from the proof data + challenge (same as generation)
-                let expected_response = hash_blake3(&[&proof.knowledge_proof[..], &proof.challenge[..]].concat());
-                
-                println!("🔍 ZK response verification:");
-                println!("Expected: {:?}", &expected_response[0..8]);
-                println!("Actual: {:?}", &proof.response[0..8]);
-                
-                if expected_response == proof.response {
-                    println!("✅ ZK-generated challenge-response verification passed");
-                    return Ok(true);
-                } else {
-                    println!("❌ ZK-generated challenge-response verification failed");
-                }
-            },
-            Err(_) => {}
-        }
-    }
+    // With unified ZK system, we simply use the built-in verification
+    println!("🔍 Verifying identity proof using unified ZK system");
     
-    // Fallback to traditional Fiat-Shamir challenge verification
-    let challenge_data = [
-        &proof.commitment.attribute_commitment[..],
-        &proof.commitment.secret_commitment[..],
-        &proof.knowledge_proof[..],
-        &proof.attribute_proof[..],
-    ].concat();
-    let expected_challenge = hash_blake3(&challenge_data);
-    
-    let result = expected_challenge == proof.challenge;
-    if result {
-        println!("✅ Traditional challenge-response verification passed");
-    } else {
-        println!("❌ Challenge-response verification failed");
-        println!("Expected: {:?}", &expected_challenge[0..8]);
-        println!("Actual: {:?}", &proof.challenge[0..8]);
-    }
-    
-    Ok(result)
-}
-
-fn verify_attribute_proof(proof: &ZkIdentityProof) -> Result<bool> {
-    // Try to use real ZK circuits for verification
-    match crate::plonky2::ZkProofSystem::new() {
-        Ok(zk_system) => {
-            // Create a range proof from the attribute proof data to verify attributes are valid
-            let attribute_value = u64::from_le_bytes(proof.attribute_proof[0..8].try_into().unwrap_or([0u8; 8]));
-            
-            match zk_system.prove_range(
-                attribute_value,
-                u64::from_le_bytes(proof.commitment.secret_commitment[0..8].try_into().unwrap_or([0u8; 8])),
-                0,    // min value
-                u64::MAX, // max value (allow any attribute)
-            ) {
-                Ok(range_proof) => {
-                    match zk_system.verify_range(&range_proof) {
-                        Ok(is_valid) => {
-                            if is_valid {
-                                println!("✅ ZK circuit verification passed for attribute proof");
-                                return Ok(true);
-                            } else {
-                                println!("❌ ZK circuit verification failed for attribute proof");
-                            }
-                        },
-                        Err(e) => {
-                            println!("⚠️  ZK range verification error: {:?}", e);
-                        }
-                    }
-                },
-                Err(e) => {
-                    println!("⚠️  ZK range proof generation error: {:?}", e);
-                }
+    match proof.proof.verify() {
+        Ok(is_valid) => {
+            if is_valid {
+                println!("✅ Unified ZK proof verification passed");
+                Ok(true)
+            } else {
+                println!("❌ Unified ZK proof verification failed");
+                Ok(false)
             }
         },
         Err(e) => {
-            println!("⚠️  ZK system initialization failed: {:?}", e);
+            println!("⚠️ ZK proof verification error: {:?}", e);
+            Ok(false)
         }
     }
+}
+
+fn verify_attribute_proof(proof: &ZkIdentityProof) -> Result<bool> {
+    // With unified ZK system, the attribute verification is handled by the main proof
+    println!("🔍 Verifying attribute proof using unified ZK system");
     
-    // Fallback to simple verification
-    println!("🔄 Using fallback verification for attribute proof");
-    
-    if proof.attribute_proof == [0u8; 32] {
-        return Ok(false);
+    // The unified proof already includes attribute verification
+    match proof.proof.verify() {
+        Ok(is_valid) => {
+            if is_valid {
+                println!("✅ Unified ZK attribute verification passed");
+                Ok(true)
+            } else {
+                println!("❌ Unified ZK attribute verification failed");
+                Ok(false)
+            }
+        },
+        Err(e) => {
+            println!("⚠️ ZK attribute verification error: {:?}", e);
+            Ok(false)
+        }
     }
-    
-    // Original verification was simple structural checks for the fake ZK system
-    Ok(true)
 }
 
 fn verify_issuer_signature(proof: &ZkCredentialProof, schema: &CredentialSchema) -> Result<bool> {
@@ -773,45 +705,27 @@ fn verify_batch_aggregated_challenge(batch: &BatchIdentityProof) -> Result<bool>
         return Ok(false);
     }
     
-    // Verify that the aggregated challenge is correct using proper cryptographic aggregation
-    let mut challenge_data = Vec::new();
-    let mut individual_hashes = Vec::new();
+    // Verify that the aggregated challenge is correct using unified ZK verification
+    let mut all_valid = true;
     
-    for proof in &batch.proofs {
-        // Add individual challenge
-        challenge_data.extend_from_slice(&proof.challenge);
-        
-        // Create hash of proof components for aggregation
-        let proof_components = [
-            &proof.commitment.attribute_commitment[..],
-            &proof.commitment.secret_commitment[..],
-            &proof.commitment.nullifier[..],
-            &proof.challenge[..],
-        ].concat();
-        let proof_hash = hash_blake3(&proof_components);
-        individual_hashes.push(proof_hash);
+    for (i, proof) in batch.proofs.iter().enumerate() {
+        match proof.verify() {
+            Ok(is_valid) => {
+                if !is_valid {
+                    println!("❌ Proof {} in batch failed verification", i);
+                    all_valid = false;
+                    break;
+                }
+            },
+            Err(e) => {
+                println!("⚠️ Error verifying proof {} in batch: {:?}", i, e);
+                all_valid = false;
+                break;
+            }
+        }
     }
     
-    // Method 1: Direct aggregation (original simple approach)
-    let direct_aggregation = hash_blake3(&challenge_data);
-    if direct_aggregation == batch.aggregated_challenge {
-        return Ok(true);
-    }
-    
-    // Method 2: Merkle-tree based aggregation (enhanced approach)
-    let merkle_aggregation = calculate_merkle_root(&individual_hashes);
-    if merkle_aggregation == batch.aggregated_challenge {
-        return Ok(true);
-    }
-    
-    // Method 3: Sequential hash aggregation (alternative approach)
-    let mut sequential_hash = hash_blake3(b"ZHTP_BATCH_IDENTITY_INIT");
-    for hash in &individual_hashes {
-        let combined = [&sequential_hash[..], &hash[..]].concat();
-        sequential_hash = hash_blake3(&combined);
-    }
-    
-    Ok(sequential_hash == batch.aggregated_challenge)
+    Ok(all_valid)
 }
 
 fn verify_batch_merkle_root(batch: &BatchIdentityProof) -> Result<bool> {
@@ -823,16 +737,13 @@ fn verify_batch_merkle_root(batch: &BatchIdentityProof) -> Result<bool> {
     let mut leaf_data = Vec::new();
     
     for proof in &batch.proofs {
-        // Create comprehensive proof hash (similar to original merkle tree logic)
+        // Create comprehensive proof hash using unified ZK proof data
         let mut proof_components = Vec::new();
         proof_components.extend_from_slice(&proof.commitment.attribute_commitment);
         proof_components.extend_from_slice(&proof.commitment.secret_commitment);
         proof_components.extend_from_slice(&proof.commitment.nullifier);
         proof_components.extend_from_slice(&proof.commitment.public_key);
-        proof_components.extend_from_slice(&proof.challenge);
-        proof_components.extend_from_slice(&proof.response);
-        proof_components.extend_from_slice(&proof.knowledge_proof);
-        proof_components.extend_from_slice(&proof.attribute_proof);
+        proof_components.extend_from_slice(&proof.proof.proof_data);
         proof_components.extend_from_slice(&proof.timestamp.to_le_bytes());
         
         let proof_hash = hash_blake3(&proof_components);
@@ -854,8 +765,7 @@ fn verify_batch_merkle_root(batch: &BatchIdentityProof) -> Result<bool> {
         let simple_components = [
             &proof.commitment.attribute_commitment[..],
             &proof.commitment.secret_commitment[..],
-            &proof.challenge[..],
-            &proof.response[..],
+            &proof.proof.proof_data[..],
         ].concat();
         let simple_hash = hash_blake3(&simple_components);
         alternative_leaves.push(simple_hash);

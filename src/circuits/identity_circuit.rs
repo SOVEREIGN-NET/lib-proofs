@@ -130,6 +130,7 @@ impl IdentityCircuit {
             witness.credential_hash,
             self.config.min_age,
             self.config.required_jurisdiction,
+            1, // default verification level
         )
     }
 

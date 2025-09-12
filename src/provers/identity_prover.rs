@@ -137,6 +137,7 @@ impl IdentityProver {
             credential_hash,
             min_age,
             required_jurisdiction,
+            1, // default verification level
         )?;
         
         // Generate identity commitment
@@ -146,31 +147,17 @@ impl IdentityProver {
             self.nullifier_secret,
         )?;
         
-        // Extract proof components from ZK proof
-        let mut knowledge_proof = [0u8; 32];
-        knowledge_proof.copy_from_slice(&zk_proof.verification_key_hash);
-        
-        let mut attribute_proof = [0u8; 32];
-        attribute_proof.copy_from_slice(&zk_proof.private_input_commitment);
-        
-        let challenge = hash_blake3(&[
-            &zk_proof.proof[..],
-            &commitment.attribute_commitment[..],
-        ].concat());
-        
-        let response = hash_blake3(&[
-            &zk_proof.verification_key_hash[..],
-            &challenge[..],
-        ].concat());
+        // Create unified ZK proof from the Plonky2 proof
+        let unified_proof = crate::types::zk_proof::ZkProof::from_plonky2(zk_proof);
         
         Ok(ZkIdentityProof {
+            proof: unified_proof,
             commitment,
-            knowledge_proof,
-            attribute_proof,
-            challenge,
-            response,
             proven_attributes: claims.to_vec(),
-            timestamp: zk_proof.generated_at,
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
         })
     }
 
@@ -189,36 +176,18 @@ impl IdentityProver {
             self.nullifier_secret,
         )?;
         
-        // Generate knowledge proof (proves knowledge of private key)
-        let knowledge_proof = hash_blake3(&[
-            &self.private_key[..],
-            &commitment.secret_commitment[..],
-            b"knowledge_proof",
-        ].concat());
+        // For the unified system, create a proof from the attributes
+        let public_inputs = vec![
+            u64::from_le_bytes(self.private_key[0..8].try_into().unwrap_or([0u8; 8])),
+            25, // Default age
+            840, // Default to US
+            u64::from_le_bytes(commitment.attribute_commitment[0..8].try_into().unwrap_or([0u8; 8])),
+            18, // min_age requirement
+            0,  // jurisdiction requirement
+            1,  // verification level
+        ];
         
-        // Generate attribute proof (proves attributes are valid)
-        let attribute_bytes = attributes.to_bytes();
-        let attribute_proof = hash_blake3(&[
-            &attribute_bytes[..],
-            &self.private_key[..],
-            b"attribute_proof",
-        ].concat());
-        
-        // Generate Fiat-Shamir challenge
-        let challenge_data = [
-            &commitment.attribute_commitment[..],
-            &commitment.secret_commitment[..],
-            &knowledge_proof[..],
-            &attribute_proof[..],
-        ].concat();
-        let challenge = hash_blake3(&challenge_data);
-        
-        // Generate response to challenge
-        let response = hash_blake3(&[
-            &self.private_key[..],
-            &challenge[..],
-            &self.nullifier_secret[..],
-        ].concat());
+        let unified_proof = crate::types::zk_proof::ZkProof::from_public_inputs(public_inputs)?;
         
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -226,11 +195,8 @@ impl IdentityProver {
             .as_secs();
         
         Ok(ZkIdentityProof {
+            proof: unified_proof,
             commitment,
-            knowledge_proof,
-            attribute_proof,
-            challenge,
-            response,
             proven_attributes: claims.to_vec(),
             timestamp,
         })
@@ -317,6 +283,7 @@ impl IdentityProver {
                 jurisdiction_hash, // Use same as credential
                 18, // Min age
                 jurisdiction_hash, // Required jurisdiction
+                1, // default verification level
             ) {
                 Ok(zk_proof) => {
                     let commitment = IdentityCommitment::generate(
@@ -326,13 +293,13 @@ impl IdentityProver {
                     )?;
                     
                     return Ok(ZkIdentityProof {
+                        proof: crate::types::zk_proof::ZkProof::from_plonky2(zk_proof),
                         commitment,
-                        knowledge_proof: zk_proof.verification_key_hash,
-                        attribute_proof: zk_proof.private_input_commitment,
-                        challenge: hash_blake3(&zk_proof.proof),
-                        response: hash_blake3(&[&zk_proof.verification_key_hash[..], &zk_proof.private_input_commitment[..]].concat()),
                         proven_attributes: vec!["citizenship".to_string()],
-                        timestamp: zk_proof.generated_at,
+                        timestamp: std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .unwrap()
+                            .as_secs(),
                     });
                 },
                 Err(_) => {

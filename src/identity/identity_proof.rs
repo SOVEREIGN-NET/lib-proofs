@@ -1,11 +1,12 @@
-//! Identity zero-knowledge proof implementation
+//! Identity zero-knowledge proof implementation for unified ZK system
 //! 
-//! Provides identity proofs that allow users to prove they possess certain
-//! identity attributes without revealing the actual identity data.
+//! Provides identity proofs using unified Plonky2 backend that allow users 
+//! to prove they possess certain identity attributes without revealing the actual identity data
 
 use anyhow::Result;
 use serde::{Serialize, Deserialize};
 use lib_crypto::hashing::hash_blake3;
+use crate::types::zk_proof::ZkProof;
 
 /// Identity attributes that can be proven in zero-knowledge
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -164,19 +165,13 @@ impl IdentityCommitment {
     }
 }
 
-/// Zero-knowledge identity proof
+/// Zero-knowledge identity proof using unified Plonky2 system
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ZkIdentityProof {
+    /// Unified ZK proof for identity verification
+    pub proof: ZkProof,
     /// Identity commitment
     pub commitment: IdentityCommitment,
-    /// Proof that the prover knows the identity secret
-    pub knowledge_proof: [u8; 32],
-    /// Proof that attributes are valid
-    pub attribute_proof: [u8; 32],
-    /// Challenge from Fiat-Shamir transform
-    pub challenge: [u8; 32],
-    /// Response to the challenge
-    pub response: [u8; 32],
     /// Attributes being proven (structure only, not values)
     pub proven_attributes: Vec<String>,
     /// Proof creation timestamp
@@ -184,7 +179,7 @@ pub struct ZkIdentityProof {
 }
 
 impl ZkIdentityProof {
-    /// Generate an identity proof
+    /// Generate an identity proof using unified ZK system
     pub fn generate(
         attributes: &IdentityAttributes,
         identity_secret: [u8; 32],
@@ -193,83 +188,28 @@ impl ZkIdentityProof {
     ) -> Result<Self> {
         let commitment = IdentityCommitment::generate(attributes, identity_secret, nullifier_secret)?;
         
-        // Try to use real ZK circuits for proof generation
-        match crate::plonky2::ZkProofSystem::new() {
-            Ok(zk_system) => {
-                // Use real ZK identity circuit
-                match zk_system.prove_identity(
-                    u64::from_le_bytes(identity_secret[0..8].try_into().unwrap_or([0u8; 8])),
-                    if let Some((min, max)) = attributes.age_range { (min + max) as u64 / 2 } else { 25 }, // Average age
-                    if let Some(ref citizenship) = attributes.citizenship { 
-                        u64::from_le_bytes(hash_blake3(citizenship.as_bytes())[0..8].try_into().unwrap_or([0u8; 8]))
-                    } else { 840 }, // Default to US
-                    u64::from_le_bytes(commitment.attribute_commitment[0..8].try_into().unwrap_or([0u8; 8])),
-                    18, // min_age requirement
-                    0,  // no jurisdiction requirement
-                ) {
-                    Ok(zk_proof) => {
-                        println!("✅ Generated real ZK identity proof using circuit");
-                        
-                        // Use ZK proof data for our proofs
-                        let mut knowledge_proof = [0u8; 32];
-                        knowledge_proof.copy_from_slice(&zk_proof.proof[0..32.min(zk_proof.proof.len())]);
-                        
-                        let mut attribute_proof = [0u8; 32];
-                        if zk_proof.proof.len() >= 64 {
-                            attribute_proof.copy_from_slice(&zk_proof.proof[32..64]);
-                        } else {
-                            attribute_proof = hash_blake3(&zk_proof.proof);
-                        }
-                        
-                        let challenge = hash_blake3(&zk_proof.verification_key_hash);
-                        let response = hash_blake3(&[&zk_proof.proof[..], &challenge[..]].concat());
-                        
-                        let timestamp = std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .unwrap()
-                            .as_secs();
-                        
-                        return Ok(ZkIdentityProof {
-                            commitment,
-                            knowledge_proof,
-                            attribute_proof,
-                            challenge,
-                            response,
-                            proven_attributes,
-                            timestamp,
-                        });
-                    },
-                    Err(e) => {
-                        println!("⚠️  ZK identity proof generation failed, using fallback: {:?}", e);
-                    }
-                }
-            },
-            Err(e) => {
-                println!("⚠️  ZK system init failed, using fallback: {:?}", e);
-            }
+        // Use unified ZK system via Plonky2
+        let mut public_inputs = Vec::new();
+        public_inputs.push(u64::from_le_bytes(identity_secret[0..8].try_into().unwrap_or([0u8; 8])));
+        
+        if let Some((min, max)) = attributes.age_range {
+            public_inputs.push((min + max) as u64 / 2); // Average age
+        } else {
+            public_inputs.push(25); // Default age
         }
         
-        // Fallback to cryptographic proof generation
-        println!("🔄 Using fallback cryptographic identity proof generation");
+        if let Some(ref citizenship) = attributes.citizenship {
+            public_inputs.push(u64::from_le_bytes(hash_blake3(citizenship.as_bytes())[0..8].try_into().unwrap_or([0u8; 8])));
+        } else {
+            public_inputs.push(840); // Default to US
+        }
         
-        // Generate knowledge proof (proves knowledge of identity_secret)
-        let knowledge_proof = hash_blake3(&[&identity_secret[..], &commitment.secret_commitment[..]].concat());
+        public_inputs.push(u64::from_le_bytes(commitment.attribute_commitment[0..8].try_into().unwrap_or([0u8; 8])));
+        public_inputs.push(18); // min_age requirement
+        public_inputs.push(0);  // jurisdiction requirement
+        public_inputs.push(1);  // verification level
         
-        // Generate attribute proof (proves attributes are valid)
-        let attribute_bytes = attributes.to_bytes();
-        let attribute_proof = hash_blake3(&[&attribute_bytes[..], &identity_secret[..]].concat());
-        
-        // Generate Fiat-Shamir challenge
-        let challenge_data = [
-            &commitment.attribute_commitment[..],
-            &commitment.secret_commitment[..],
-            &knowledge_proof[..],
-            &attribute_proof[..],
-        ].concat();
-        let challenge = hash_blake3(&challenge_data);
-        
-        // Generate response to challenge
-        let response = hash_blake3(&[&identity_secret[..], &challenge[..]].concat());
+        let proof = ZkProof::from_public_inputs(public_inputs)?;
         
         let timestamp = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
@@ -277,11 +217,8 @@ impl ZkIdentityProof {
             .as_secs();
         
         Ok(ZkIdentityProof {
+            proof,
             commitment,
-            knowledge_proof,
-            attribute_proof,
-            challenge,
-            response,
             proven_attributes,
             timestamp,
         })
@@ -353,6 +290,11 @@ impl ZkIdentityProof {
         Self::generate(attributes, identity_secret, nullifier_secret, proven_attrs)
     }
 
+    /// Verify the identity proof using unified ZK system
+    pub fn verify(&self) -> Result<bool> {
+        self.proof.verify()
+    }
+
     /// Check if proof is expired (default: 24 hours)
     pub fn is_expired(&self) -> bool {
         self.is_expired_after(24 * 60 * 60) // 24 hours in seconds
@@ -385,8 +327,8 @@ impl ZkIdentityProof {
 
     /// Get the size of this proof in bytes
     pub fn proof_size(&self) -> usize {
+        self.proof.size() +
         std::mem::size_of::<IdentityCommitment>() +
-        32 * 4 + // knowledge_proof, attribute_proof, challenge, response
         self.proven_attributes.iter().map(|a| a.len()).sum::<usize>() +
         8 // timestamp
     }
@@ -412,10 +354,11 @@ impl BatchIdentityProof {
             return Err(anyhow::anyhow!("Cannot create empty batch proof"));
         }
 
-        // Aggregate challenges
+        // Aggregate challenges from unified proofs
         let mut challenge_data = Vec::new();
         for proof in &proofs {
-            challenge_data.extend_from_slice(&proof.challenge);
+            // Use proof data from unified system for challenge aggregation
+            challenge_data.extend_from_slice(&proof.proof.proof_data);
         }
         let aggregated_challenge = hash_blake3(&challenge_data);
 
@@ -425,8 +368,7 @@ impl BatchIdentityProof {
             let proof_hash = hash_blake3(&[
                 &proof.commitment.attribute_commitment[..],
                 &proof.commitment.secret_commitment[..],
-                &proof.challenge[..],
-                &proof.response[..],
+                &proof.proof.proof_data[..],
             ].concat());
             leaf_data.push(proof_hash);
         }
