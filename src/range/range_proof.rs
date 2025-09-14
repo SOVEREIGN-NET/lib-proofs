@@ -1,6 +1,6 @@
 //! Zero-knowledge range proof implementation for unified ZK system
 //! 
-//! Implements range proofs that allow proving a committed value lies within
+//! Zero-knowledge range proofs that allow proving a committed value lies within
 //! a specified range without revealing the exact value, using unified Plonky2 backend.
 
 use anyhow::Result;
@@ -54,7 +54,9 @@ impl ZkRangeProof {
 
     /// Generate proof for positive value (value > 0)
     pub fn generate_positive(value: u64, blinding: [u8; 32]) -> Result<Self> {
-        Self::generate(value, 1, u64::MAX, blinding)
+        // Use a large but reasonable upper bound to avoid overflow
+        const MAX_POSITIVE: u64 = (1u64 << 63) - 1; // 2^63 - 1
+        Self::generate(value, 1, MAX_POSITIVE, blinding)
     }
 
     /// Generate proof for bounded value with power-of-2 range
@@ -99,6 +101,12 @@ impl ZkRangeProof {
 
     /// Check if this proof is using the unified system (always true)
     pub fn is_unified_system(&self) -> bool {
+        true
+    }
+
+    /// Check if this is a standard bulletproof (for compatibility)
+    pub fn is_standard_bulletproof(&self) -> bool {
+        // All our range proofs use Plonky2 unified system, which is compatible
         true
     }
 }
@@ -249,7 +257,7 @@ mod tests {
         let proof = ZkRangeProof::generate_positive(value, blinding).unwrap();
         
         assert_eq!(proof.min_value, 1);
-        assert_eq!(proof.max_value, u64::MAX);
+        assert_eq!(proof.max_value, (1u64 << 63) - 1);
     }
 
     #[test]

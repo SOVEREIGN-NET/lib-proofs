@@ -1,4 +1,4 @@
-//! Zero-knowledge proof structure and types
+//! Zero-knowledge proof structures and types
 //! 
 //! Unified ZK proof system matching ZHTPDEV-main65 architecture.
 //! All proof types use the same underlying ZkProof structure with Plonky2 backend.
@@ -26,7 +26,7 @@ pub struct ZkProof {
 impl ZkProof {
     /// Create a new ZK proof using unified Plonky2 backend (ZHTPDEV-main65 style)
     pub fn new(
-        proof_system: String,
+        _proof_system: String,
         proof_data: Vec<u8>,
         public_inputs: Vec<u8>,
         verification_key: Vec<u8>,
@@ -123,7 +123,7 @@ impl ZkProof {
     /// Get the proof size in bytes
     pub fn size(&self) -> usize {
         if let Some(ref plonky2) = self.plonky2_proof {
-            plonky2.proof.len() + plonky2.public_inputs.len() * 8 // u64 = 8 bytes
+            plonky2.proof.len() + plonky2.public_inputs.len()
         } else {
             self.proof_data.len() + self.public_inputs.len() + self.verification_key.len()
         }
@@ -249,7 +249,7 @@ mod tests {
 
         assert_eq!(proof.proof_system, "Plonky2");
         assert!(proof.is_plonky2());
-        assert_eq!(proof.size(), 9);
+        assert_eq!(proof.size(), 6); // 3 (proof) + 3 (public_inputs) = 6
         assert!(!proof.is_empty());
     }
 

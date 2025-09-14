@@ -267,7 +267,7 @@ fn verify_knowledge_proof(proof: &ZkIdentityProof) -> Result<bool> {
     
     // Try to use real ZK circuits for verification
     match crate::plonky2::ZkProofSystem::new() {
-        Ok(zk_system) => {
+        Ok(_zk_system) => {
             println!("✅ ZK system initialized for knowledge proof verification");
             
             // Use the unified ZK proof for verification

@@ -47,6 +47,9 @@ pub use plonky2::proof_system::ZkProofSystem;
 pub use provers::*;
 pub use verifiers::*;
 
+// NEW: Re-export ZK integration functionality (moved from lib-crypto)
+pub use zk_integration::*;
+
 // Module declarations
 pub mod types;
 pub mod transaction;
@@ -57,6 +60,9 @@ pub mod plonky2;
 pub mod circuits;
 pub mod provers;
 pub mod verifiers;
+
+// NEW: ZK integration module (moved from lib-crypto)
+pub mod zk_integration;
 
 // Type aliases for backward compatibility
 pub use types::zk_proof::ZkProof as ZeroKnowledgeProof;

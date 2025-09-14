@@ -84,6 +84,7 @@ impl ZkTransactionProof {
         let nullifier_inputs = vec![
             u64::from_le_bytes(nullifier[0..8].try_into().unwrap_or([0u8; 8])),
             u64::from_le_bytes(sender_blinding[0..8].try_into().unwrap_or([0u8; 8])),
+            u64::from_le_bytes(receiver_blinding[0..8].try_into().unwrap_or([0u8; 8])),
         ];
 
         let amount_proof = ZkProof::from_public_inputs(amount_inputs)?;

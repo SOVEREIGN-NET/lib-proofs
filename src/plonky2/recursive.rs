@@ -45,7 +45,7 @@ pub struct RecursiveProof {
 
 /// Recursive proof builder
 pub struct RecursiveProofBuilder {
-    system: ZkProofSystem,
+    _system: ZkProofSystem,
     config: RecursiveConfig,
     pending_proofs: Vec<Plonky2Proof>,
 }
@@ -55,7 +55,7 @@ impl RecursiveProofBuilder {
     pub fn new(config: RecursiveConfig) -> Result<Self> {
         let system = ZkProofSystem::new()?;
         Ok(Self {
-            system,
+            _system: system,
             config,
             pending_proofs: Vec::new(),
         })
@@ -154,14 +154,14 @@ impl RecursiveProofBuilder {
 
 /// Recursive proof verifier
 pub struct RecursiveVerifier {
-    system: ZkProofSystem,
+    _system: ZkProofSystem,
 }
 
 impl RecursiveVerifier {
     /// Create a new recursive verifier
     pub fn new() -> Result<Self> {
         let system = ZkProofSystem::new()?;
-        Ok(Self { system })
+        Ok(Self { _system: system })
     }
 
     /// Verify a recursive proof

@@ -205,7 +205,7 @@ impl Plonky2Verifier {
         // Verify public inputs count
         let expected_inputs = match proof.circuit_id.as_str() {
             id if id.starts_with("optimized-transaction") => 3,
-            id if id.starts_with("identity_v") => 2,
+            id if id.starts_with("identity_v") => 4, // age_valid, jurisdiction_valid, verification_level, proof_timestamp
             id if id.starts_with("range_v") => 2,
             id if id.starts_with("storage_access_v") => 1,
             id if id.starts_with("routing_privacy_v") => 2,
@@ -273,21 +273,20 @@ impl Plonky2Verifier {
         let mut results = Vec::with_capacity(proofs.len());
         let start_time = std::time::Instant::now();
 
-        // Pre-validate all proofs in the batch
-        for proof in proofs {
+        // Perform batch cryptographic verification
+        let batch_valid = self.batch_verify_cryptographic(circuit_id, proofs)?;
+        
+        // Generate individual results based on validation and batch verification
+        for (i, proof) in proofs.iter().enumerate() {
+            // First check structure validation
             if let Err(e) = self.validate_proof_structure(proof) {
                 results.push(VerificationResult::Invalid(
                     format!("Batch validation failed: {}", e)
                 ));
                 continue;
             }
-        }
-
-        // Perform batch cryptographic verification
-        let batch_valid = self.batch_verify_cryptographic(circuit_id, proofs)?;
-        
-        // Generate individual results based on batch verification
-        for (i, proof) in proofs.iter().enumerate() {
+            
+            // Then check cryptographic verification
             if i < batch_valid.len() && batch_valid[i] {
                 results.push(VerificationResult::Valid {
                     circuit_id: proof.circuit_id.clone(),
@@ -461,15 +460,19 @@ mod tests {
         let proofs = vec![
             system.prove_transaction(1000, 100, 10, 12345, 67890)?,
             system.prove_transaction(2000, 200, 20, 54321, 98765)?,
-            system.prove_identity(12345, 25, 840, 9999, 18, 840)?,
+            system.prove_identity(12345, 25, 840, 9999, 18, 840, 1)?,
         ];
         
         let results = verifier.batch_verify(&proofs)?;
         assert_eq!(results.len(), 3);
         
-        // All should be valid
-        for result in results {
-            assert!(matches!(result, VerificationResult::Valid { .. }));
+        // All should be valid - debug any failures
+        for (i, result) in results.iter().enumerate() {
+            if !matches!(result, VerificationResult::Valid { .. }) {
+                eprintln!("Proof {} failed: {:?}", i, result);
+            }
+            assert!(matches!(result, VerificationResult::Valid { .. }), 
+                "Proof {} should be valid but got: {:?}", i, result);
         }
         
         Ok(())

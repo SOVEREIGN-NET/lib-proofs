@@ -265,7 +265,7 @@ impl IdentityProver {
 
     /// Prove citizenship of a specific country
     pub fn prove_citizenship(&self, country: &str) -> Result<ZkIdentityProof> {
-        let mut attributes = IdentityAttributes::new().with_citizenship(country.to_string());
+        let attributes = IdentityAttributes::new().with_citizenship(country.to_string());
         
         // Try ZK proof first
         if let Some(ref zk_system) = self.zk_system {

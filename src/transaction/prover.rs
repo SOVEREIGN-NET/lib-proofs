@@ -54,6 +54,11 @@ impl ZkTransactionProver {
                 sender_secret,
                 nullifier_seed,
             )?;
+            
+            // Validate receiver balance is sufficient for receiving
+            if receiver_balance + amount < receiver_balance {
+                return Err(anyhow::anyhow!("Receiver balance overflow"));
+            }
 
             // Generate range proofs for amounts
             let amount_range_proof = zk_system.prove_range(

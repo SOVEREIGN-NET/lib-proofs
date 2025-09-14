@@ -156,7 +156,7 @@ impl TransactionCircuit {
             fee_wire,
             nullifier_wire,
         ]);
-        let output = builder.add_output(validity_proof);
+        let _output = builder.add_output(validity_proof);
 
         self.circuit = Some(ZkCircuit::from_builder(builder));
         Ok(())

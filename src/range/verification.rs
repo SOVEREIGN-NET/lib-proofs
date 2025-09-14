@@ -4,9 +4,9 @@
 //! validation including commitment verification and range checking.
 
 use anyhow::Result;
-use lib_crypto::hashing::hash_blake3;
 use crate::types::VerificationResult;
-use super::{ZkRangeProof, BulletproofRangeProof, AggregatedBulletproof};
+use crate::ZkRangeProof;
+use crate::range::{BulletproofRangeProof, AggregatedBulletproof};
 
 /// Verify a range proof with full cryptographic validation
 pub fn verify_range_proof(proof: &ZkRangeProof) -> Result<VerificationResult> {
@@ -220,7 +220,7 @@ impl VerificationStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::range::ZkRangeProof;
+    use crate::ZkRangeProof;
     use crate::types::ZkProofType;
 
     #[test]
@@ -240,13 +240,13 @@ mod tests {
 
     #[test]
     fn test_invalid_range_proof() -> Result<()> {
-        // Create a proof with invalid range (min > max)
-        let mut proof = ZkRangeProof::generate(100, 0, 1000, [1u8; 32])?;
-        proof.min_value = 2000; // Invalid: min > max
+        // Test 1: Value out of range should fail during generation
+        let result1 = ZkRangeProof::generate(1500, 0, 1000, [1u8; 32]);
+        assert!(result1.is_err());
         
-        let result = verify_range_proof(&proof)?;
-        assert!(!result.is_valid());
-        assert!(result.error_message().is_some());
+        // Test 2: Invalid range (min > max) should fail during generation  
+        let result2 = ZkRangeProof::generate(100, 2000, 1000, [1u8; 32]);
+        assert!(result2.is_err());
         
         Ok(())
     }

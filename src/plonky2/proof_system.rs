@@ -280,8 +280,8 @@ pub struct Plonky2Proof {
 /// Production ZK proof system with real cryptographic security
 pub struct ZkProofSystem {
     initialized: bool,
-    /// Circuit verification keys
-    verification_keys: HashMap<String, Vec<u8>>,
+    /// Circuit verification keys (reserved for future use)
+    _verification_keys: HashMap<String, Vec<u8>>,
     /// Proof generation statistics
     proof_stats: ZkProofStats,
 }
@@ -328,7 +328,7 @@ impl ZkProofSystem {
 
         Ok(Self {
             initialized: true,
-            verification_keys,
+            _verification_keys: verification_keys,
             proof_stats: ZkProofStats::default(),
         })
     }
@@ -1081,7 +1081,8 @@ impl ZkProofSystem {
 }
 
 // Implement the trait from lib-crypto for compatibility
-impl lib_crypto::zk_integration::ZkProofSystem for ZkProofSystem {
+/* Compatibility implementation removed - use zk_integration module instead
+impl ZkProofSystemCompat for ZkProofSystem {
     fn new() -> Result<Self> where Self: Sized {
         ZkProofSystem::new()
     }
@@ -1216,6 +1217,7 @@ impl lib_crypto::zk_integration::ZkProofSystem for ZkProofSystem {
         self.verify_storage_access(&our_proof)
     }
 }
+*/
 
 #[cfg(test)]
 mod tests {
