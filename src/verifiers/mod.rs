@@ -7,11 +7,13 @@ pub mod transaction_verifier;
 pub mod identity_verifier;
 pub mod range_verifier;
 pub mod merkle_verifier;
+pub mod state_verifier;
 
 // Re-export main types
 pub use transaction_verifier::TransactionVerifier;
 pub use identity_verifier::IdentityVerifier;
 pub use range_verifier::RangeVerifier;
+pub use state_verifier::StateVerifier;
 
 // Re-export merkle verification functions
 pub use merkle_verifier::{

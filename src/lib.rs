@@ -50,6 +50,12 @@ pub use verifiers::*;
 // NEW: Re-export ZK integration functionality (moved from lib-crypto)
 pub use zk_integration::*;
 
+// NEW: Re-export state proof system for bootstrapping and mesh integration
+pub use state::*;
+
+// NEW: Re-export recursive proof system
+pub use recursive::*;
+
 // Module declarations
 pub mod types;
 pub mod transaction;
@@ -63,6 +69,12 @@ pub mod verifiers;
 
 // NEW: ZK integration module (moved from lib-crypto)
 pub mod zk_integration;
+
+// NEW: State proof system for bootstrapping and mesh integration
+pub mod state;
+
+// NEW: Recursive proof system for hierarchical aggregation
+pub mod recursive;
 
 // Type aliases for backward compatibility
 pub use types::zk_proof::ZkProof as ZeroKnowledgeProof;

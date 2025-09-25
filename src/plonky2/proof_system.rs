@@ -152,6 +152,30 @@ impl CircuitBuilder {
         self.gates.len() - 1
     }
 
+    /// Add a subtraction gate
+    pub fn add_subtraction(&mut self, wire1: usize, wire2: usize) -> usize {
+        let gate = CircuitGate {
+            gate_type: "subtraction".to_string(),
+            inputs: vec![wire1, wire2],
+            outputs: vec![self.gates.len()],
+            parameters: vec![],
+        };
+        self.add_gate(gate);
+        self.gates.len() - 1
+    }
+
+    /// Add a multiplication gate
+    pub fn add_multiplication(&mut self, wire1: usize, wire2: usize) -> usize {
+        let gate = CircuitGate {
+            gate_type: "multiplication".to_string(),
+            inputs: vec![wire1, wire2],
+            outputs: vec![self.gates.len()],
+            parameters: vec![],
+        };
+        self.add_gate(gate);
+        self.gates.len() - 1
+    }
+
     /// Add a range constraint
     pub fn add_range_constraint(&mut self, wire: usize, min: u64, max: u64) {
         let constraint = CircuitConstraint {

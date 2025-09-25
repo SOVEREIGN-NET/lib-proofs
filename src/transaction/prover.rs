@@ -26,6 +26,7 @@ impl ZkTransactionProver {
 
     /// Generate a real zero-knowledge transaction proof using Plonky2
     pub fn prove_transaction(
+        &self,
         sender_balance: u64,
         receiver_balance: u64,
         amount: u64,
@@ -34,8 +35,8 @@ impl ZkTransactionProver {
         receiver_blinding: [u8; 32],
         nullifier: [u8; 32],
     ) -> Result<ZkTransactionProof> {
-        // Try to use real Plonky2 proof system
-        if let Ok(zk_system) = ZkProofSystem::new() {
+        // Use the instance's ZK system if available
+        if let Some(zk_system) = &self.zk_system {
             // Convert blinding factors to u64 for Plonky2
             let sender_secret = u64::from_le_bytes([
                 sender_blinding[0], sender_blinding[1], sender_blinding[2], sender_blinding[3],
@@ -104,7 +105,8 @@ impl ZkTransactionProver {
         }
 
         // Create real Plonky2 proofs for all components
-        let zk_system = ZkProofSystem::new().context("Failed to initialize ZK proof system")?;
+        let zk_system = self.zk_system.as_ref()
+            .ok_or_else(|| anyhow::anyhow!("ZK system not initialized"))?;
         
         // Generate Plonky2 proof for transaction amount
         let amount_plonky2_proof = zk_system.prove_transaction(
@@ -182,10 +184,11 @@ impl ZkTransactionProver {
 
     /// Generate a simple transaction proof for testing
     pub fn prove_simple_transaction(
+        &self,
         amount: u64,
         sender_secret: [u8; 32],
     ) -> Result<ZkTransactionProof> {
-        Self::prove_transaction(
+        self.prove_transaction(
             amount * 2, // sender_balance (enough for transaction)
             0,          // receiver_balance (not needed)
             amount,     // amount
@@ -206,7 +209,7 @@ impl ZkTransactionProver {
         for (sender_balance, receiver_balance, amount, fee, sender_blinding, receiver_blinding, nullifier) in transactions {
             // For now, create a simple transaction proof structure
             // In a real implementation, this would be optimized for batch proving
-            let _zk_proof = Self::prove_transaction(
+            let _zk_proof = self.prove_transaction(
                 sender_balance,
                 receiver_balance,
                 amount,
@@ -319,10 +322,11 @@ mod tests {
 
     #[test]
     fn test_simple_transaction_proof() {
+        let prover = ZkTransactionProver::new().unwrap_or_default();
         let sender_secret = [42u8; 32];
         let amount = 100u64;
         
-        let result = ZkTransactionProver::prove_simple_transaction(amount, sender_secret);
+        let result = prover.prove_simple_transaction(amount, sender_secret);
         assert!(result.is_ok());
         
         let proof = result.unwrap();
@@ -332,6 +336,7 @@ mod tests {
 
     #[test]
     fn test_full_transaction_proof() {
+        let prover = ZkTransactionProver::new().unwrap_or_default();
         let sender_balance = 1000u64;
         let receiver_balance = 500u64;
         let amount = 100u64;
@@ -340,7 +345,7 @@ mod tests {
         let receiver_blinding = [2u8; 32];
         let nullifier = [3u8; 32];
         
-        let result = ZkTransactionProver::prove_transaction(
+        let result = prover.prove_transaction(
             sender_balance,
             receiver_balance,
             amount,

@@ -13,4 +13,5 @@ pub use proof_system::{
     CircuitBuilder, CircuitConfig, ZkCircuit, CircuitGate, CircuitConstraint
 };
 pub use verification::{CircuitStats, Plonky2Verifier, VerificationContext, verify_plonky2_proof};
-pub use recursive::{RecursiveProof, RecursiveConfig, RecursiveProofBuilder, RecursiveVerifier};
+pub use recursive::{RecursiveProof, RecursiveConfig, RecursiveProofBuilder, RecursiveVerifier,
+    generate_batch_recursive_proof, verify_batch_recursive_proof};
