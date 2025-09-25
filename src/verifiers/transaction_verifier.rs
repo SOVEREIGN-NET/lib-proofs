@@ -164,27 +164,11 @@ impl TransactionVerifier {
         Ok(results)
     }
 
-    /// Fast verification mode (reduced security checks)
+    /// REMOVED: Fast verification mode - NO SHORTCUTS ALLOWED
+    /// All verifications must use full cryptographic proof validation
     pub fn verify_fast(&mut self, proof: &TransactionProof) -> Result<bool> {
-        let start_time = std::time::Instant::now();
-        
-        // Basic structural validation only
-        if let Err(_) = proof.validate() {
-            return Ok(false);
-        }
-
-        // Quick circuit hash check
-        if proof.circuit_hash != self.circuit.circuit.as_ref().unwrap().circuit_hash {
-            return Ok(false);
-        }
-
-        // Skip expensive cryptographic verification
-        let verification_time = start_time.elapsed().as_millis() as u64;
-        let verification_time = std::cmp::max(verification_time, 1);
-        self.stats.add_verification_time(verification_time);
-        self.stats.increment_verifications();
-        
-        Ok(true)
+        // NO FAST MODE - use full verification always
+        self.verify(proof)
     }
 
     /// Calculate proof hash for caching

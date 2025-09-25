@@ -1,7 +1,7 @@
 // Identity verifier implementation
 use crate::types::VerificationResult;
 use crate::identity::{ZkIdentityProof, ZkCredentialProof, CredentialSchema, IdentityVerificationResult};
-use crate::identity::verification::{verify_identity_proof, verify_credential_proof, verify_identity_proof_fast, verify_batch_identity_proofs, verify_batch_credential_proofs};
+use crate::identity::verification::{verify_identity_proof, verify_credential_proof, verify_batch_identity_proofs, verify_batch_credential_proofs};
 use crate::identity::identity_proof::BatchIdentityProof;
 use crate::identity::credential_proof::BatchCredentialProof;
 use anyhow::Result;
@@ -25,9 +25,14 @@ impl IdentityVerifier {
         verify_identity_proof(proof)
     }
 
-    /// Fast identity verification with reduced checks
+    /// REMOVED: Fast identity verification - NO SHORTCUTS ALLOWED
+    /// All verifications must use full cryptographic proof validation
     pub fn verify_identity_fast(&self, proof: &ZkIdentityProof) -> Result<bool> {
-        verify_identity_proof_fast(proof)
+        // NO FAST MODE - use full verification always
+        match self.verify_identity_detailed(proof) {
+            Ok(result) => Ok(result.basic_result.is_valid()),
+            Err(_) => Ok(false),
+        }
     }
 
     /// Verify a credential proof

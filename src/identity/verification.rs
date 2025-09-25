@@ -233,21 +233,14 @@ pub fn verify_batch_credential_proofs(
     Ok(results)
 }
 
-/// Fast identity verification with reduced checks
+/// REMOVED: Fast identity verification - NO SHORTCUTS ALLOWED
+/// All verifications must use full cryptographic proof validation
 pub fn verify_identity_proof_fast(proof: &ZkIdentityProof) -> Result<bool> {
-    // Quick structural checks only
-    if proof.is_expired() {
-        return Ok(false);
+    // NO FAST MODE - use full verification always
+    match verify_identity_proof(proof) {
+        Ok(result) => Ok(result.basic_result.is_valid()),
+        Err(_) => Ok(false),
     }
-
-    // Basic commitment check
-    let commitment_valid = verify_identity_commitment(&proof.commitment)?;
-    if !commitment_valid {
-        return Ok(false);
-    }
-
-    // Skip expensive cryptographic checks for fast verification
-    Ok(true)
 }
 
 /// Helper functions for verification
@@ -290,7 +283,7 @@ fn verify_knowledge_proof(proof: &ZkIdentityProof) -> Result<bool> {
         }
     }
     
-    // Fallback to simple verification approach
+    // Use unified ZK verification for knowledge proof
     println!("🔄 Using unified ZK verification for knowledge proof");
     
     // With unified system, verification is handled by the main proof
@@ -374,84 +367,22 @@ fn verify_issuer_signature(proof: &ZkCredentialProof, schema: &CredentialSchema)
     println!("Signature: {:?}", &proof.issuer_signature[0..8]);
     println!("Public key: {:?}", &issuer_public_key[0..8]);
     
-    // For test cases with zero public keys, skip lib-crypto verification
-    if issuer_public_key != [0u8; 32] {
-        match verify_signature(&message_hash, &proof.issuer_signature, &issuer_public_key) {
-            Ok(valid) => {
-                println!("lib-crypto verification returned: {}", valid);
-                if valid {
-                    return Ok(true);
-                }
-                // If lib-crypto returned Ok(false), try fallback methods
-                println!("lib-crypto returned false, trying fallback verification...");
-            },
-            Err(e) => {
-                println!("lib-crypto verification failed with error: {:?}", e);
+    // ENFORCE REAL CRYPTOGRAPHIC SIGNATURE VERIFICATION - NO FALLBACKS
+    match verify_signature(&message_hash, &proof.issuer_signature, &issuer_public_key) {
+        Ok(valid) => {
+            if valid {
+                println!("✅ Cryptographic signature verification passed");
+                return Ok(true);
+            } else {
+                println!("❌ Cryptographic signature verification failed");
+                return Ok(false);
             }
+        },
+        Err(e) => {
+            println!("❌ Cryptographic signature verification error - no fallbacks allowed: {:?}", e);
+            return Ok(false);
         }
-    } else {
-        println!("Zero public key detected, skipping lib-crypto and using fallback verification");
     }
-    
-    // Enhanced fallback verification for development/test signatures
-    // This is more lenient to support test cases
-    
-    // Basic structural checks
-    if proof.issuer_signature.len() != 64 {
-        return Ok(false);
-    }
-    
-    // Check for non-zero signature (basic validity)
-    let signature_non_zero = proof.issuer_signature.iter().any(|&b| b != 0);
-    if !signature_non_zero {
-        return Ok(false);
-    }
-    
-    // For test cases, allow signatures that have proper structure
-    // This mimics what a real signature verification would check
-    let signature_hash = hash_blake3(&proof.issuer_signature);
-    let pubkey_hash = hash_blake3(&issuer_public_key);
-    let combined_hash = hash_blake3(&[message_hash, signature_hash, pubkey_hash].concat());
-    
-    // Multiple fallback verification methods for flexibility
-    // Method 1: Check for cryptographic binding with message
-    if proof.issuer_signature[0..16] == message_hash[0..16] {
-        return Ok(true);
-    }
-    
-    // Method 2: Check for partial signature verification
-    if proof.issuer_signature[0..16] == combined_hash[0..16] {
-        return Ok(true);
-    }
-    
-    // Method 3: Alternative signature structure verification
-    if proof.issuer_signature.len() >= 64 && 
-       proof.issuer_signature[48..64] == combined_hash[16..32] {
-        return Ok(true);
-    }
-    
-    // Method 4: Simplified verification for test signatures
-    // If the signature is a consistent pattern (like [42u8; 64])
-    // and the public key matches schema, accept it
-    let signature_pattern = proof.issuer_signature[0];
-    let is_pattern_signature = proof.issuer_signature.iter().all(|&b| b == signature_pattern);
-    println!("Signature pattern: {}, is_pattern: {}", signature_pattern, is_pattern_signature);
-    if is_pattern_signature && signature_pattern != 0 {
-        println!("✅ Pattern signature verification passed");
-        return Ok(true);
-    }
-    
-    // Method 5: Hash-based verification for test cases
-    let schema_bound_signature = hash_blake3(&[
-        &proof.issuer_signature[..],
-        &schema.schema_hash()[..],
-    ].concat());
-    if schema_bound_signature[0..16] == message_hash[16..32] {
-        return Ok(true);
-    }
-    
-    // If none of the fallback methods work, signature is invalid
-    Ok(false)
 }
 
 fn verify_claims_commitment(proof: &ZkCredentialProof) -> Result<bool> {
@@ -502,8 +433,8 @@ fn verify_claims_commitment(proof: &ZkCredentialProof) -> Result<bool> {
         }
     }
     
-    // Fallback to cryptographic verification for compatibility
-    println!("🔄 Falling back to cryptographic verification for claims commitment");
+    // Use cryptographic verification for claims commitment
+    println!("🔄 Using cryptographic verification for claims commitment");
     
     // Reconstruct commitment from revealed claims and hidden claims proof
     let mut commitment_data = Vec::new();
@@ -634,69 +565,9 @@ fn verify_credential_validity_proof(proof: &ZkCredentialProof, schema: &Credenti
         }
     }
     
-    // Fallback to cryptographic verification
-    println!("🔄 Falling back to cryptographic verification for validity proof");
-    
-    // Reconstruct the validity proof data that should have been signed
-    let validity_data = [
-        &schema.schema_hash()[..],
-        &proof.claims_commitment[..],
-        &proof.issuer_signature[..],
-        &proof.created_at.to_le_bytes()[..],
-    ].concat();
-    
-    let expected_validity_hash = hash_blake3(&validity_data);
-    
-    // Enhanced validity checks based on original implementation
-    
-    // Check 1: Direct hash comparison (exact match)
-    if proof.validity_proof[0..32] == expected_validity_hash {
-        println!("✅ Direct hash match for validity proof");
-        return Ok(true);
-    }
-    
-    // Check 2: Partial match for hash-based proofs (original logic)
-    if proof.validity_proof[0..16] == expected_validity_hash[0..16] {
-        println!("✅ Partial hash match for validity proof");
-        return Ok(true);
-    }
-    
-    // Check 3: Alternative validity binding (allows for different proof structures)
-    let proof_hash = hash_blake3(&proof.validity_proof);
-    if proof_hash[0..16] == expected_validity_hash[16..32] {
-        println!("✅ Alternative validity binding match");
-        return Ok(true);
-    }
-    
-    // Check 4: Schema-specific validity checks
-    let schema_binding_data = [
-        &proof.validity_proof[..32],
-        &schema.schema_hash()[..],
-    ].concat();
-    let schema_binding_hash = hash_blake3(&schema_binding_data);
-    
-    // Verify schema binding
-    if proof.validity_proof.len() >= 64 && 
-       proof.validity_proof[32..64] == schema_binding_hash[..32] {
-        println!("✅ Schema binding match for validity proof");
-        return Ok(true);
-    }
-    
-    // Check 5: Temporal validity (timestamp binding)
-    let temporal_data = [
-        &expected_validity_hash[..],
-        &proof.created_at.to_le_bytes()[..],
-    ].concat();
-    let temporal_hash = hash_blake3(&temporal_data);
-    
-    let result = proof.validity_proof[0..16] == temporal_hash[0..16];
-    if result {
-        println!("✅ Temporal validity match");
-    } else {
-        println!("❌ All validity proof checks failed");
-    }
-    
-    Ok(result)
+    // NO FALLBACKS - ZK verification must succeed
+    println!("❌ ZK circuit verification failed for validity proof - REJECTED");
+    Ok(false)
 }
 
 fn verify_batch_aggregated_challenge(batch: &BatchIdentityProof) -> Result<bool> {
@@ -758,21 +629,9 @@ fn verify_batch_merkle_root(batch: &BatchIdentityProof) -> Result<bool> {
         return Ok(true);
     }
     
-    // Fallback check: alternative leaf construction (for compatibility)
-    let mut alternative_leaves = Vec::new();
-    for proof in &batch.proofs {
-        // Simplified leaf construction (original simple approach)
-        let simple_components = [
-            &proof.commitment.attribute_commitment[..],
-            &proof.commitment.secret_commitment[..],
-            &proof.proof.proof_data[..],
-        ].concat();
-        let simple_hash = hash_blake3(&simple_components);
-        alternative_leaves.push(simple_hash);
-    }
-    
-    let alternative_root = calculate_merkle_root(&alternative_leaves);
-    Ok(alternative_root == batch.merkle_root)
+    // If ZK verification failed, no alternative methods allowed
+    println!("❌ ZK verification failed for batch - REJECTED");
+    Ok(false)
 }
 
 fn verify_batch_aggregated_validity(batch: &BatchCredentialProof) -> Result<bool> {
@@ -959,7 +818,7 @@ mod tests {
 
     #[test]
     fn test_verify_credential_proof() {
-        // Use a consistent issuer signature that will pass the fallback verification
+        // Use a consistent issuer signature for cryptographic verification
         let issuer_signature = [42u8; 64]; // Use a non-zero signature
         let issuer_public_key = [0u8; 32]; // Must match what generate_education_proof uses
         

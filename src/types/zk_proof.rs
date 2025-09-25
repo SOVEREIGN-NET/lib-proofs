@@ -19,7 +19,7 @@ pub struct ZkProof {
     pub verification_key: Vec<u8>,
     /// Real Plonky2 proof data (primary proof mechanism)
     pub plonky2_proof: Option<Plonky2Proof>,
-    /// Legacy proof format (for fallback compatibility)
+    /// Deprecated proof format (kept for data structure compatibility only)
     pub proof: Vec<u8>,
 }
 
@@ -70,35 +70,15 @@ impl ZkProof {
                     public_inputs.get(4).copied().unwrap_or(0),
                 ) {
                     Ok(plonky2_proof) => Ok(Self::from_plonky2(plonky2_proof)),
-                    Err(_) => {
-                        // Fallback to creating a proof from the inputs directly
-                        let proof_data: Vec<u8> = public_inputs.iter()
-                            .flat_map(|&x| x.to_le_bytes().to_vec())
-                            .collect();
-                        Ok(Self {
-                            proof_system: "Plonky2".to_string(),
-                            proof_data: proof_data.clone(),
-                            public_inputs: proof_data,
-                            verification_key: vec![0u8; 32],
-                            plonky2_proof: None,
-                            proof: vec![],
-                        })
+                    Err(e) => {
+                        // NO FALLBACK - fail hard if Plonky2 proof creation fails
+                        Err(anyhow::anyhow!("Plonky2 proof creation failed - no fallbacks allowed: {:?}", e))
                     }
                 }
             },
-            Err(_) => {
-                // Fallback implementation
-                let proof_data: Vec<u8> = public_inputs.iter()
-                    .flat_map(|&x| x.to_le_bytes().to_vec())
-                    .collect();
-                Ok(Self {
-                    proof_system: "Plonky2".to_string(),
-                    proof_data: proof_data.clone(),
-                    public_inputs: proof_data,
-                    verification_key: vec![0u8; 32],
-                    plonky2_proof: None,
-                    proof: vec![],
-                })
+            Err(e) => {
+                // NO FALLBACK - fail hard if ZK system initialization fails
+                Err(anyhow::anyhow!("ZK system initialization failed - no fallbacks allowed: {:?}", e))
             }
         }
     }
@@ -154,8 +134,8 @@ impl ZkProof {
                 _ => Ok(false), // Unknown proof type
             }
         } else {
-            // Fallback verification for legacy proofs
-            Ok(!self.is_empty())
+            // NO FALLBACK - all proofs must use Plonky2
+            Err(anyhow::anyhow!("Proof must use Plonky2 - no fallbacks allowed"))
         }
     }
 }

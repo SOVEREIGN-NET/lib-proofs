@@ -7,7 +7,7 @@ use crate::identity::{ZkIdentityProof, IdentityCommitment, IdentityAttributes};
 use crate::plonky2::ZkProofSystem;
 use anyhow::{Result, anyhow};
 use lib_crypto::hashing::hash_blake3;
-use tracing::{info, warn};
+use tracing::{info, warn, error};
 
 /// Identity prover for generating identity proofs with real ZK circuits
 pub struct IdentityProver {
@@ -32,8 +32,9 @@ impl IdentityProver {
                 Some(system)
             },
             Err(e) => {
-                warn!("⚠️  ZK system init failed, will use fallback: {:?}", e);
-                None
+                error!("❌ ZK system init failed - identity prover cannot function without ZK: {:?}", e);
+                // Panic to prevent insecure fallback usage
+                panic!("ZK system initialization required - no fallbacks allowed: {:?}", e);
             }
         };
 
@@ -69,13 +70,14 @@ impl IdentityProver {
                     return Ok(proof);
                 },
                 Err(e) => {
-                    warn!("⚠️  ZK circuit proof failed, using cryptographic fallback: {:?}", e);
+                    error!("❌ ZK circuit proof failed - no fallbacks allowed: {:?}", e);
+                    return Err(anyhow::anyhow!("ZK circuit proof generation failed - no fallbacks: {:?}", e));
                 }
             }
         }
         
-        // Fallback to cryptographic proof
-        self.generate_cryptographic_proof(&attributes, claims)
+        // Should never reach here since ZK system is required
+        Err(anyhow::anyhow!("No ZK system available - identity prover requires ZK circuits"))
     }
 
     /// Generate proof using real ZK circuits
@@ -161,46 +163,7 @@ impl IdentityProver {
         })
     }
 
-    /// Generate cryptographic proof as fallback
-    fn generate_cryptographic_proof(
-        &self,
-        attributes: &IdentityAttributes,
-        claims: &[String],
-    ) -> Result<ZkIdentityProof> {
-        info!("🔒 Generating cryptographic identity proof");
-        
-        // Generate identity commitment
-        let commitment = IdentityCommitment::generate(
-            attributes,
-            self.private_key,
-            self.nullifier_secret,
-        )?;
-        
-        // For the unified system, create a proof from the attributes
-        let public_inputs = vec![
-            u64::from_le_bytes(self.private_key[0..8].try_into().unwrap_or([0u8; 8])),
-            25, // Default age
-            840, // Default to US
-            u64::from_le_bytes(commitment.attribute_commitment[0..8].try_into().unwrap_or([0u8; 8])),
-            18, // min_age requirement
-            0,  // jurisdiction requirement
-            1,  // verification level
-        ];
-        
-        let unified_proof = crate::types::zk_proof::ZkProof::from_public_inputs(public_inputs)?;
-        
-        let timestamp = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
-        
-        Ok(ZkIdentityProof {
-            proof: unified_proof,
-            commitment,
-            proven_attributes: claims.to_vec(),
-            timestamp,
-        })
-    }
+    /// REMOVED: Cryptographic proof fallback - pure ZK only
 
     /// Build identity attributes from claim strings
     fn build_attributes_from_claims(&self, claims: &[String]) -> Result<IdentityAttributes> {
@@ -308,7 +271,7 @@ impl IdentityProver {
             }
         }
         
-        // Fallback
+        // Delegate to main identity proof method
         self.prove_identity(&[format!("citizenship:{}", country)])
     }
 

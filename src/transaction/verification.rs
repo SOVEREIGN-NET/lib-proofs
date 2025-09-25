@@ -1,34 +1,35 @@
 //! Transaction proof verification logic
 //! 
-//! Provides verification functions for transaction proofs, prioritizing
-//! Plonky2 verification with fallback to cryptographic verification.
+//! Provides PURE ZK verification functions for transaction proofs using
+//! Plonky2 circuits only. NO FALLBACKS ALLOWED.
 
 use anyhow::Result;
 use crate::transaction::ZkTransactionProof;
 use crate::plonky2::ZkProofSystem;
 use crate::types::VerificationResult;
 
-/// Verify a transaction proof (prioritizes Plonky2)
+/// Verify a transaction proof using PURE ZK verification only
 pub fn verify_transaction(proof: &ZkTransactionProof) -> Result<bool> {
-    // Check if we have Plonky2 proofs
-    if let Some(plonky2_proof) = &proof.amount_proof.plonky2_proof {
-        if let Ok(zk_system) = ZkProofSystem::new() {
-            let amount_valid = zk_system.verify_transaction(plonky2_proof)?;
-            
-            if let Some(range_proof) = &proof.balance_proof.plonky2_proof {
-                let balance_valid = zk_system.verify_range(range_proof)?;
-                
-                if let Some(nullifier_range_proof) = &proof.nullifier_proof.plonky2_proof {
-                    let nullifier_valid = zk_system.verify_range(nullifier_range_proof)?;
-                    
-                    return Ok(amount_valid && balance_valid && nullifier_valid);
-                }
-            }
-        }
-    }
-
-    // Fallback to cryptographic verification
-    verify_transaction_fallback(proof)
+    // REQUIRE Plonky2 proofs - NO FALLBACKS ALLOWED
+    let zk_system = ZkProofSystem::new()
+        .map_err(|e| anyhow::anyhow!("Failed to initialize ZK system: {:?}", e))?;
+    
+    // Verify amount proof - MUST be Plonky2
+    let plonky2_amount_proof = proof.amount_proof.plonky2_proof.as_ref()
+        .ok_or_else(|| anyhow::anyhow!("Amount proof must be Plonky2 - no fallbacks allowed"))?;
+    let amount_valid = zk_system.verify_transaction(plonky2_amount_proof)?;
+    
+    // Verify balance proof - MUST be Plonky2
+    let plonky2_balance_proof = proof.balance_proof.plonky2_proof.as_ref()
+        .ok_or_else(|| anyhow::anyhow!("Balance proof must be Plonky2 - no fallbacks allowed"))?;
+    let balance_valid = zk_system.verify_range(plonky2_balance_proof)?;
+    
+    // Verify nullifier proof - MUST be Plonky2
+    let plonky2_nullifier_proof = proof.nullifier_proof.plonky2_proof.as_ref()
+        .ok_or_else(|| anyhow::anyhow!("Nullifier proof must be Plonky2 - no fallbacks allowed"))?;
+    let nullifier_valid = zk_system.verify_range(plonky2_nullifier_proof)?;
+    
+    Ok(amount_valid && balance_valid && nullifier_valid)
 }
 
 /// Verify transaction proof with detailed results
@@ -44,63 +45,40 @@ pub fn verify_transaction_detailed(proof: &ZkTransactionProof) -> VerificationRe
     }
 }
 
-/// Fallback verification using cryptographic methods
-fn verify_transaction_fallback(proof: &ZkTransactionProof) -> Result<bool> {
-    // Verify all three proof components have valid structure  
-    if proof.amount_proof.proof_system != "Plonky2" ||
-       proof.balance_proof.proof_system != "Plonky2" ||
-       proof.nullifier_proof.proof_system != "Plonky2" {
-        return Ok(false);
-    }
+/// REMOVED: Fallback verification - pure ZK only
+/// This function is no longer used as we enforce ZK-only verification
 
-    // Verify all three proof components
-    let amount_valid = !proof.amount_proof.public_inputs.is_empty() && 
-                      !proof.amount_proof.verification_key.is_empty();
-    let balance_valid = !proof.balance_proof.public_inputs.is_empty() && 
-                       !proof.balance_proof.verification_key.is_empty();
-    let nullifier_valid = !proof.nullifier_proof.public_inputs.is_empty() && 
-                          !proof.nullifier_proof.verification_key.is_empty();
-
-    Ok(amount_valid && balance_valid && nullifier_valid)
-}
-
-/// Verify individual proof components
+/// Verify amount proof component using PURE ZK verification only
 pub fn verify_amount_proof(proof: &ZkTransactionProof) -> Result<bool> {
-    if let Some(plonky2_proof) = &proof.amount_proof.plonky2_proof {
-        if let Ok(zk_system) = ZkProofSystem::new() {
-            return zk_system.verify_transaction(plonky2_proof);
-        }
-    }
+    let zk_system = ZkProofSystem::new()
+        .map_err(|e| anyhow::anyhow!("Failed to initialize ZK system: {:?}", e))?;
     
-    // Fallback verification
-    Ok(!proof.amount_proof.public_inputs.is_empty() && 
-       !proof.amount_proof.verification_key.is_empty())
+    let plonky2_proof = proof.amount_proof.plonky2_proof.as_ref()
+        .ok_or_else(|| anyhow::anyhow!("Amount proof must be Plonky2 - no fallbacks allowed"))?;
+    
+    zk_system.verify_transaction(plonky2_proof)
 }
 
-/// Verify balance proof component
+/// Verify balance proof component using PURE ZK verification only
 pub fn verify_balance_proof(proof: &ZkTransactionProof) -> Result<bool> {
-    if let Some(plonky2_proof) = &proof.balance_proof.plonky2_proof {
-        if let Ok(zk_system) = ZkProofSystem::new() {
-            return zk_system.verify_range(plonky2_proof);
-        }
-    }
+    let zk_system = ZkProofSystem::new()
+        .map_err(|e| anyhow::anyhow!("Failed to initialize ZK system: {:?}", e))?;
     
-    // Fallback verification
-    Ok(!proof.balance_proof.public_inputs.is_empty() && 
-       !proof.balance_proof.verification_key.is_empty())
+    let plonky2_proof = proof.balance_proof.plonky2_proof.as_ref()
+        .ok_or_else(|| anyhow::anyhow!("Balance proof must be Plonky2 - no fallbacks allowed"))?;
+    
+    zk_system.verify_range(plonky2_proof)
 }
 
-/// Verify nullifier proof component
+/// Verify nullifier proof component using PURE ZK verification only
 pub fn verify_nullifier_proof(proof: &ZkTransactionProof) -> Result<bool> {
-    if let Some(plonky2_proof) = &proof.nullifier_proof.plonky2_proof {
-        if let Ok(zk_system) = ZkProofSystem::new() {
-            return zk_system.verify_range(plonky2_proof);
-        }
-    }
+    let zk_system = ZkProofSystem::new()
+        .map_err(|e| anyhow::anyhow!("Failed to initialize ZK system: {:?}", e))?;
     
-    // Fallback verification
-    Ok(!proof.nullifier_proof.public_inputs.is_empty() && 
-       !proof.nullifier_proof.verification_key.is_empty())
+    let plonky2_proof = proof.nullifier_proof.plonky2_proof.as_ref()
+        .ok_or_else(|| anyhow::anyhow!("Nullifier proof must be Plonky2 - no fallbacks allowed"))?;
+    
+    zk_system.verify_range(plonky2_proof)
 }
 
 /// Batch verify multiple transaction proofs
@@ -116,7 +94,7 @@ pub fn batch_verify_transactions(proofs: &[ZkTransactionProof]) -> Result<Vec<bo
 
 /// Check if a transaction proof meets minimum security requirements
 pub fn meets_security_requirements(proof: &ZkTransactionProof) -> bool {
-    // All proofs must use Plonky2 or have valid fallback verification
+    // All proofs MUST use Plonky2 - no fallbacks allowed
     proof.is_plonky2() && !proof.has_empty_proofs()
 }
 
