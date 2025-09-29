@@ -8,12 +8,17 @@ pub mod identity_verifier;
 pub mod range_verifier;
 pub mod merkle_verifier;
 pub mod state_verifier;
+pub mod recursive_aggregator;
 
 // Re-export main types
 pub use transaction_verifier::TransactionVerifier;
 pub use identity_verifier::IdentityVerifier;
 pub use range_verifier::RangeVerifier;
 pub use state_verifier::StateVerifier;
+pub use recursive_aggregator::{
+    RecursiveProofAggregator, InstantStateVerifier, BlockAggregatedProof, 
+    ChainRecursiveProof, StateSummary
+};
 
 // Re-export merkle verification functions
 pub use merkle_verifier::{

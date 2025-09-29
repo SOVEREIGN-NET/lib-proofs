@@ -47,6 +47,9 @@ pub use plonky2::proof_system::ZkProofSystem;
 pub use provers::*;
 pub use verifiers::*;
 
+// Specifically re-export recursive aggregation components
+pub use verifiers::{RecursiveProofAggregator, InstantStateVerifier, BlockAggregatedProof, ChainRecursiveProof};
+
 // NEW: Re-export ZK integration functionality (moved from lib-crypto)
 pub use zk_integration::*;
 

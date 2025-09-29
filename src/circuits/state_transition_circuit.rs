@@ -100,6 +100,7 @@ pub struct StateTransitionMetadata {
 }
 
 /// State transition circuit implementation
+#[derive(Debug)]
 pub struct StateTransitionCircuit {
     config: CircuitConfig,
     transaction_circuit: TransactionCircuit,

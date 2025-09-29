@@ -26,14 +26,14 @@ pub struct ZkProof {
 impl ZkProof {
     /// Create a new ZK proof using unified Plonky2 backend (ZHTPDEV-main65 style)
     pub fn new(
-        _proof_system: String,
+        proof_system: String,
         proof_data: Vec<u8>,
         public_inputs: Vec<u8>,
         verification_key: Vec<u8>,
         plonky2_proof: Option<Plonky2Proof>,
     ) -> Self {
         Self {
-            proof_system: "Plonky2".to_string(), // Always use Plonky2 for unified system
+            proof_system, // Use the provided proof system identifier
             proof_data: proof_data.clone(),
             public_inputs,
             verification_key,
