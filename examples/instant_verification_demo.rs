@@ -13,7 +13,7 @@ use lib_proofs::{
 use anyhow::Result;
 
 fn main() -> Result<()> {
-    println!("🚀 Sovereign Network - Instant State Verification Demo");
+    println!(" Sovereign Network - Instant State Verification Demo");
     println!("=====================================================");
 
     // Initialize the recursive proof aggregator
@@ -26,7 +26,7 @@ fn main() -> Result<()> {
 }
 
 fn simulate_blockchain_growth(aggregator: &mut RecursiveProofAggregator) -> Result<()> {
-    println!("\n📊 Simulating blockchain growth with O(1) verification...");
+    println!("\nSimulating blockchain growth with O(1) verification...");
     
     // Simulate genesis block
     let genesis_state = [0u8; 32]; // Initial state commitment
@@ -35,19 +35,19 @@ fn simulate_blockchain_growth(aggregator: &mut RecursiveProofAggregator) -> Resu
     
     // Process 5 blocks to demonstrate recursive composition
     for block_height in 1..=5 {
-        println!("\n🔗 Processing Block #{}", block_height);
+        println!("\nProcessing Block #{}", block_height);
         
         // Simulate transactions in this block
         let transaction_count = 10 + (block_height * 5); // Increasing tx count
         let transaction_proofs = simulate_transaction_proofs(transaction_count);
         
-        println!("   📝 Aggregating {} transactions...", transaction_count);
+        println!("   Aggregating {} transactions...", transaction_count);
         
         // Step 1: Aggregate all transactions in the block (simplified for demo)
         // In reality this would use the actual API with proper transaction data
-        println!("   📝 Creating mock block proof for demonstration...");
+        println!("   Creating mock block proof for demonstration...");
         
-        println!("   ✅ Block aggregated - {} transactions → 1 proof", transaction_count);
+        println!("   Block aggregated - {} transactions → 1 proof", transaction_count);
         
         // Step 2: Create recursive chain proof (simplified for demo)
         // This demonstrates the concept - in practice would use real block proof
@@ -61,14 +61,14 @@ fn simulate_blockchain_growth(aggregator: &mut RecursiveProofAggregator) -> Resu
         current_state = simulate_state_update(&current_state, &transaction_proofs);
         current_chain_proof = Some(new_chain_proof);
         
-        println!("   🔄 Recursive chain proof created");
+        println!("    Recursive chain proof created");
         
         // Demonstrate O(1) verification
         if let Some(ref chain_proof) = current_chain_proof {
             let verification_result = aggregator.verify_recursive_chain_proof(chain_proof)?;
             
-            println!("   ⚡ O(1) Verification: {} (constant time regardless of chain length)", 
-                if verification_result { "✅ VALID" } else { "❌ INVALID" });
+            println!("   O(1) Verification: {} (constant time regardless of chain length)", 
+                if verification_result { "VALID" } else { "INVALID" });
                 
             // Show that verification time is constant
             let total_transactions: usize = (1..=block_height)
@@ -82,25 +82,25 @@ fn simulate_blockchain_growth(aggregator: &mut RecursiveProofAggregator) -> Resu
     
     // Demonstrate instant state verification
     if let Some(final_chain_proof) = current_chain_proof {
-        println!("\n🎯 Instant State Verification Demo");
+        println!("\nInstant State Verification Demo");
         println!("==================================");
         
         let instant_verifier = InstantStateVerifier::new()?;
         let state_valid = instant_verifier.verify_current_state(&final_chain_proof)?;
         
         println!("✨ Instant verification result: {}", 
-            if state_valid { "✅ ENTIRE CHAIN VALID" } else { "❌ CHAIN INVALID" });
-        println!("⚡ Verification complexity: O(1) - constant time!");
-        println!("🎉 Total chain history verified with a single proof operation!");
+            if state_valid { "ENTIRE CHAIN VALID" } else { "CHAIN INVALID" });
+        println!("Verification complexity: O(1) - constant time!");
+        println!("Total chain history verified with a single proof operation!");
         
         // Show the power of recursive composition
-        println!("\n💡 Recursive Composition Benefits:");
+        println!("\nRecursive Composition Benefits:");
         println!("   • Block 1: 15 transactions → 1 aggregated proof");
         println!("   • Block 2: 20 transactions + Block 1 proof → 1 recursive proof");
         println!("   • Block 3: 25 transactions + Block 2 proof → 1 recursive proof");
         println!("   • Block 4: 30 transactions + Block 3 proof → 1 recursive proof");
         println!("   • Block 5: 35 transactions + Block 4 proof → 1 recursive proof");
-        println!("   📊 Total: 125 transactions verified with O(1) complexity!");
+        println!("   Total: 125 transactions verified with O(1) complexity!");
     }
     
     Ok(())

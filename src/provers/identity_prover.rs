@@ -28,11 +28,11 @@ impl IdentityProver {
         // Initialize ZK proof system
         let zk_system = match ZkProofSystem::new() {
             Ok(system) => {
-                info!("✅ Identity prover initialized with production ZK system");
+                info!("Identity prover initialized with production ZK system");
                 Some(system)
             },
             Err(e) => {
-                error!("❌ ZK system init failed - identity prover cannot function without ZK: {:?}", e);
+                error!("ZK system init failed - identity prover cannot function without ZK: {:?}", e);
                 // Panic to prevent insecure fallback usage
                 panic!("ZK system initialization required - no fallbacks allowed: {:?}", e);
             }
@@ -57,7 +57,7 @@ impl IdentityProver {
 
     /// Generate real zero-knowledge identity proof
     pub fn prove_identity(&self, claims: &[String]) -> Result<ZkIdentityProof> {
-        info!("🔐 Generating identity proof for {} claims", claims.len());
+        info!("Generating identity proof for {} claims", claims.len());
         
         // Build identity attributes from claims
         let attributes = self.build_attributes_from_claims(claims)?;
@@ -66,11 +66,11 @@ impl IdentityProver {
         if let Some(ref zk_system) = self.zk_system {
             match self.generate_zk_circuit_proof(zk_system, &attributes, claims) {
                 Ok(proof) => {
-                    info!("✅ Generated real ZK identity proof using circuit");
+                    info!("Generated real ZK identity proof using circuit");
                     return Ok(proof);
                 },
                 Err(e) => {
-                    error!("❌ ZK circuit proof failed - no fallbacks allowed: {:?}", e);
+                    error!("ZK circuit proof failed - no fallbacks allowed: {:?}", e);
                     return Err(anyhow::anyhow!("ZK circuit proof generation failed - no fallbacks: {:?}", e));
                 }
             }

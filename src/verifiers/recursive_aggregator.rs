@@ -275,8 +275,8 @@ impl RecursiveProofAggregator {
         
         let verification_time = start_time.elapsed().as_millis() as u64;
         
-        // 🎉 Successfully verified entire chain in O(1) time!
-        println!("✅ Verified entire blockchain state (height {} -> {}) in {}ms", 
+        //  Successfully verified entire chain in O(1) time!
+        println!("Verified entire blockchain state (height {} -> {}) in {}ms", 
                  chain_proof.genesis_height, 
                  chain_proof.chain_tip_height,
                  verification_time);
@@ -482,21 +482,21 @@ impl RecursiveProofAggregator {
 
     fn verify_recursive_proof(&self, proof: &ZkProof) -> Result<bool> {
         if proof.proof_system != "plonky2_recursive_chain" {
-            warn!("❌ Proof system mismatch: expected 'plonky2_recursive_chain', got '{}'", proof.proof_system);
+            warn!("Proof system mismatch: expected 'plonky2_recursive_chain', got '{}'", proof.proof_system);
             return Ok(false);
         }
         if proof.proof_data.len() != 32 {
-            warn!("❌ Invalid proof data length: expected 32, got {}", proof.proof_data.len());
+            warn!("Invalid proof data length: expected 32, got {}", proof.proof_data.len());
             return Ok(false);
         }
         if proof.public_inputs.len() != 3 {
-            warn!("❌ Invalid public inputs length: expected 3, got {}", proof.public_inputs.len());
+            warn!("Invalid public inputs length: expected 3, got {}", proof.public_inputs.len());
             return Ok(false);
         }
         
         let expected_vk = self.get_recursive_chain_verification_key()?;
         if proof.verification_key != expected_vk {
-            warn!("❌ Verification key mismatch");
+            warn!("Verification key mismatch");
             return Ok(false);
         }
         
@@ -697,20 +697,20 @@ impl InstantStateVerifier {
     }
 
     pub fn verify_current_state(&self, latest_proof: &ChainRecursiveProof) -> Result<bool> {
-        println!("🔍 Verifying entire blockchain state...");
+        println!("Verifying entire blockchain state...");
         println!("   Chain range: blocks {} -> {}", latest_proof.genesis_height, latest_proof.chain_tip_height);
         println!("   Total transactions: {}", latest_proof.total_transaction_count);
         
         let verification_result = self.aggregator.verify_recursive_chain_proof(latest_proof)?;
         
         if verification_result {
-            println!("✅ INSTANT STATE VERIFICATION SUCCESSFUL!");
+            println!("INSTANT STATE VERIFICATION SUCCESSFUL!");
             println!("   Verified {} blocks and {} transactions in O(1) time", 
                      latest_proof.chain_tip_height - latest_proof.genesis_height + 1,
                      latest_proof.total_transaction_count);
             println!("   Current state root: {:?}", &latest_proof.current_state_root[..8]);
         } else {
-            println!("❌ State verification failed");
+            println!("State verification failed");
         }
         
         Ok(verification_result)

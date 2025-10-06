@@ -187,7 +187,7 @@ impl ZkCredentialProof {
                     1, // required permission = at least 1 claim
                 ) {
                     Ok(zk_proof) => {
-                        println!("✅ Generated real ZK claims commitment using circuit");
+                        println!("Generated real ZK claims commitment using circuit");
                         // Use the ZK proof data as our commitment
                         let mut commitment_data = zk_proof.proof;
                         commitment_data.resize(32, 0); // Ensure it's 32 bytes
@@ -196,14 +196,14 @@ impl ZkCredentialProof {
                         commitment_array
                     },
                     Err(e) => {
-                        println!("⚠️  ZK commitment generation failed, using fallback: {:?}", e);
+                        println!(" ZK commitment generation failed, using fallback: {:?}", e);
                         // Fallback to hash-based commitment
                         hash_blake3(&claims_data)
                     }
                 }
             },
             Err(e) => {
-                println!("⚠️  ZK system init failed, using fallback: {:?}", e);
+                println!(" ZK system init failed, using fallback: {:?}", e);
                 // Fallback to hash-based commitment
                 hash_blake3(&claims_data)
             }
@@ -248,7 +248,7 @@ impl ZkCredentialProof {
                     1048576, // max_size (1MB)
                 ) {
                     Ok(zk_proof) => {
-                        println!("✅ Generated real ZK validity proof using circuit");
+                        println!("Generated real ZK validity proof using circuit");
                         // Use the ZK proof data as our validity proof
                         let mut validity_data = zk_proof.proof;
                         validity_data.resize(32, 0); // Ensure it's 32 bytes
@@ -257,7 +257,7 @@ impl ZkCredentialProof {
                         validity_array
                     },
                     Err(e) => {
-                        println!("⚠️  ZK proof generation failed, using fallback: {:?}", e);
+                        println!(" ZK proof generation failed, using fallback: {:?}", e);
                         // Fallback to hash-based validity proof
                         let validity_data = [
                             &schema_hash[..],
@@ -270,7 +270,7 @@ impl ZkCredentialProof {
                 }
             },
             Err(e) => {
-                println!("⚠️  ZK system init failed, using fallback: {:?}", e);
+                println!(" ZK system init failed, using fallback: {:?}", e);
                 // Fallback to hash-based validity proof
                 let validity_data = [
                     &schema_hash[..],

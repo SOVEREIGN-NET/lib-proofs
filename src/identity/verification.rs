@@ -37,7 +37,7 @@ pub fn verify_identity_proof(proof: &ZkIdentityProof) -> Result<IdentityVerifica
     
     // Verify commitment structure
     let commitment_valid = verify_identity_commitment(&proof.commitment)?;
-    println!("🔍 Identity commitment valid: {}", commitment_valid);
+    println!("Identity commitment valid: {}", commitment_valid);
     if !commitment_valid {
         return Ok(IdentityVerificationResult {
             basic_result: VerificationResult::Invalid("Identity commitment verification failed".to_string()),
@@ -50,7 +50,7 @@ pub fn verify_identity_proof(proof: &ZkIdentityProof) -> Result<IdentityVerifica
 
     // Verify knowledge proof (that prover knows the identity secret)
     let knowledge_valid = verify_knowledge_proof(proof)?;
-    println!("🔍 Knowledge proof valid: {}", knowledge_valid);
+    println!("Knowledge proof valid: {}", knowledge_valid);
     if !knowledge_valid {
         return Ok(IdentityVerificationResult {
             basic_result: VerificationResult::Invalid("Knowledge proof verification failed".to_string()),
@@ -63,7 +63,7 @@ pub fn verify_identity_proof(proof: &ZkIdentityProof) -> Result<IdentityVerifica
 
     // Verify challenge-response (Fiat-Shamir)
     let challenge_valid = verify_identity_challenge_response(proof)?;
-    println!("🔍 Challenge-response valid: {}", challenge_valid);
+    println!("Challenge-response valid: {}", challenge_valid);
     if !challenge_valid {
         return Ok(IdentityVerificationResult {
             basic_result: VerificationResult::Invalid("Challenge-response verification failed".to_string()),
@@ -256,35 +256,35 @@ fn verify_identity_commitment(commitment: &super::IdentityCommitment) -> Result<
 }
 
 fn verify_knowledge_proof(proof: &ZkIdentityProof) -> Result<bool> {
-    println!("🔍 Starting knowledge proof verification");
+    println!("Starting knowledge proof verification");
     
     // Try to use real ZK circuits for verification
     match crate::plonky2::ZkProofSystem::new() {
         Ok(_zk_system) => {
-            println!("✅ ZK system initialized for knowledge proof verification");
+            println!("ZK system initialized for knowledge proof verification");
             
             // Use the unified ZK proof for verification
             match proof.proof.verify() {
                 Ok(is_valid) => {
                     if is_valid {
-                        println!("✅ ZK circuit verification passed for knowledge proof");
+                        println!("ZK circuit verification passed for knowledge proof");
                         return Ok(true);
                     } else {
-                        println!("❌ ZK circuit verification failed for knowledge proof");
+                        println!("ZK circuit verification failed for knowledge proof");
                     }
                 },
                 Err(e) => {
-                    println!("⚠️  ZK circuit verification error: {:?}", e);
+                    println!(" ZK circuit verification error: {:?}", e);
                 }
             }
         },
         Err(e) => {
-            println!("⚠️  ZK system initialization failed: {:?}", e);
+            println!(" ZK system initialization failed: {:?}", e);
         }
     }
     
     // Use unified ZK verification for knowledge proof
-    println!("🔄 Using unified ZK verification for knowledge proof");
+    println!(" Using unified ZK verification for knowledge proof");
     
     // With unified system, verification is handled by the main proof
     match proof.proof.verify() {
@@ -295,20 +295,20 @@ fn verify_knowledge_proof(proof: &ZkIdentityProof) -> Result<bool> {
 
 fn verify_identity_challenge_response(proof: &ZkIdentityProof) -> Result<bool> {
     // With unified ZK system, we simply use the built-in verification
-    println!("🔍 Verifying identity proof using unified ZK system");
+    println!("Verifying identity proof using unified ZK system");
     
     match proof.proof.verify() {
         Ok(is_valid) => {
             if is_valid {
-                println!("✅ Unified ZK proof verification passed");
+                println!("Unified ZK proof verification passed");
                 Ok(true)
             } else {
-                println!("❌ Unified ZK proof verification failed");
+                println!("Unified ZK proof verification failed");
                 Ok(false)
             }
         },
         Err(e) => {
-            println!("⚠️ ZK proof verification error: {:?}", e);
+            println!("ZK proof verification error: {:?}", e);
             Ok(false)
         }
     }
@@ -316,21 +316,21 @@ fn verify_identity_challenge_response(proof: &ZkIdentityProof) -> Result<bool> {
 
 fn verify_attribute_proof(proof: &ZkIdentityProof) -> Result<bool> {
     // With unified ZK system, the attribute verification is handled by the main proof
-    println!("🔍 Verifying attribute proof using unified ZK system");
+    println!("Verifying attribute proof using unified ZK system");
     
     // The unified proof already includes attribute verification
     match proof.proof.verify() {
         Ok(is_valid) => {
             if is_valid {
-                println!("✅ Unified ZK attribute verification passed");
+                println!("Unified ZK attribute verification passed");
                 Ok(true)
             } else {
-                println!("❌ Unified ZK attribute verification failed");
+                println!("Unified ZK attribute verification failed");
                 Ok(false)
             }
         },
         Err(e) => {
-            println!("⚠️ ZK attribute verification error: {:?}", e);
+            println!("ZK attribute verification error: {:?}", e);
             Ok(false)
         }
     }
@@ -371,15 +371,15 @@ fn verify_issuer_signature(proof: &ZkCredentialProof, schema: &CredentialSchema)
     match verify_signature(&message_hash, &proof.issuer_signature, &issuer_public_key) {
         Ok(valid) => {
             if valid {
-                println!("✅ Cryptographic signature verification passed");
+                println!("Cryptographic signature verification passed");
                 return Ok(true);
             } else {
-                println!("❌ Cryptographic signature verification failed");
+                println!("Cryptographic signature verification failed");
                 return Ok(false);
             }
         },
         Err(e) => {
-            println!("❌ Cryptographic signature verification error - no fallbacks allowed: {:?}", e);
+            println!("Cryptographic signature verification error - no fallbacks allowed: {:?}", e);
             return Ok(false);
         }
     }
@@ -412,29 +412,29 @@ fn verify_claims_commitment(proof: &ZkCredentialProof) -> Result<bool> {
                     match zk_system.verify_storage_access(&commitment_proof) {
                         Ok(is_valid) => {
                             if is_valid {
-                                println!("✅ ZK circuit verification passed for claims commitment");
+                                println!("ZK circuit verification passed for claims commitment");
                                 return Ok(true);
                             } else {
-                                println!("❌ ZK circuit verification failed for claims commitment");
+                                println!("ZK circuit verification failed for claims commitment");
                             }
                         },
                         Err(e) => {
-                            println!("⚠️  ZK circuit verification error: {:?}", e);
+                            println!(" ZK circuit verification error: {:?}", e);
                         }
                     }
                 },
                 Err(e) => {
-                    println!("⚠️  ZK proof generation error: {:?}", e);
+                    println!(" ZK proof generation error: {:?}", e);
                 }
             }
         },
         Err(e) => {
-            println!("⚠️  ZK system initialization failed: {:?}", e);
+            println!(" ZK system initialization failed: {:?}", e);
         }
     }
     
     // Use cryptographic verification for claims commitment
-    println!("🔄 Using cryptographic verification for claims commitment");
+    println!(" Using cryptographic verification for claims commitment");
     
     // Reconstruct commitment from revealed claims and hidden claims proof
     let mut commitment_data = Vec::new();
@@ -467,9 +467,9 @@ fn verify_claims_commitment(proof: &ZkCredentialProof) -> Result<bool> {
        proof.claims_commitment[0..16] == expected_commitment[16..32];
     
     if result {
-        println!("✅ Cryptographic verification passed for claims commitment");
+        println!("Cryptographic verification passed for claims commitment");
     } else {
-        println!("❌ Cryptographic verification failed for claims commitment");
+        println!("Cryptographic verification failed for claims commitment");
     }
     
     Ok(result)
@@ -544,29 +544,29 @@ fn verify_credential_validity_proof(proof: &ZkCredentialProof, schema: &Credenti
                     match zk_system.verify_data_integrity(&validity_zk_proof) {
                         Ok(is_valid) => {
                             if is_valid {
-                                println!("✅ ZK circuit verification passed for validity proof");
+                                println!("ZK circuit verification passed for validity proof");
                                 return Ok(true);
                             } else {
-                                println!("❌ ZK circuit verification failed for validity proof");
+                                println!("ZK circuit verification failed for validity proof");
                             }
                         },
                         Err(e) => {
-                            println!("⚠️  ZK circuit verification error: {:?}", e);
+                            println!(" ZK circuit verification error: {:?}", e);
                         }
                     }
                 },
                 Err(e) => {
-                    println!("⚠️  ZK validity proof generation error: {:?}", e);
+                    println!(" ZK validity proof generation error: {:?}", e);
                 }
             }
         },
         Err(e) => {
-            println!("⚠️  ZK system initialization failed: {:?}", e);
+            println!(" ZK system initialization failed: {:?}", e);
         }
     }
     
     // NO FALLBACKS - ZK verification must succeed
-    println!("❌ ZK circuit verification failed for validity proof - REJECTED");
+    println!("ZK circuit verification failed for validity proof - REJECTED");
     Ok(false)
 }
 
@@ -583,13 +583,13 @@ fn verify_batch_aggregated_challenge(batch: &BatchIdentityProof) -> Result<bool>
         match proof.verify() {
             Ok(is_valid) => {
                 if !is_valid {
-                    println!("❌ Proof {} in batch failed verification", i);
+                    println!("Proof {} in batch failed verification", i);
                     all_valid = false;
                     break;
                 }
             },
             Err(e) => {
-                println!("⚠️ Error verifying proof {} in batch: {:?}", i, e);
+                println!("Error verifying proof {} in batch: {:?}", i, e);
                 all_valid = false;
                 break;
             }
@@ -630,7 +630,7 @@ fn verify_batch_merkle_root(batch: &BatchIdentityProof) -> Result<bool> {
     }
     
     // If ZK verification failed, no alternative methods allowed
-    println!("❌ ZK verification failed for batch - REJECTED");
+    println!("ZK verification failed for batch - REJECTED");
     Ok(false)
 }
 
@@ -867,15 +867,15 @@ mod tests {
         println!("Final verification result: {:#?}", result);
         
         // Report the status of individual verification steps
-        println!("✅ Schema hash match: {}", proof.schema_hash == schema.schema_hash());
-        println!("✅ Not expired: {}", !proof.is_expired());
-        println!("✅ Issuer signature valid: {}", signature_valid);
-        println!("❌ Claims commitment valid: {}", claims_valid);
-        println!("✅ Revealed claims valid: {}", revealed_claims_valid);
-        println!("❌ Validity proof valid: {}", validity_valid);
+        println!("Schema hash match: {}", proof.schema_hash == schema.schema_hash());
+        println!("Not expired: {}", !proof.is_expired());
+        println!("Issuer signature valid: {}", signature_valid);
+        println!("Claims commitment valid: {}", claims_valid);
+        println!("Revealed claims valid: {}", revealed_claims_valid);
+        println!("Validity proof valid: {}", validity_valid);
         
         println!("🚧 Test partially successful - signature verification fixed!");
-        println!("📝 Next steps: Fix claims commitment and validity proof verification");
+        println!("Next steps: Fix claims commitment and validity proof verification");
         
         // TODO: Uncomment when all steps pass
         // assert!(result.is_valid());

@@ -330,7 +330,7 @@ pub struct ZkProofStats {
 impl ZkProofSystem {
     /// Initialize the REAL production ZK proof system
     pub fn new() -> Result<Self> {
-        info!("🔧 Initializing PRODUCTION ZK proof system with cryptographic security...");
+        info!("Initializing PRODUCTION ZK proof system with cryptographic security...");
         
         let mut verification_keys = HashMap::new();
         
@@ -342,13 +342,13 @@ impl ZkProofSystem {
         Self::setup_routing_privacy_circuit(&mut verification_keys)?;
         Self::setup_data_integrity_circuit(&mut verification_keys)?;
         
-        info!("✅ Transaction circuits: PRODUCTION READY with cryptographic soundness");
-        info!("✅ Identity circuits: PRODUCTION READY with zero-knowledge privacy");
-        info!("✅ Range proof circuits: PRODUCTION READY with bulletproof security");
-        info!("✅ Storage access circuits: PRODUCTION READY with access control");
-        info!("✅ Routing privacy circuits: PRODUCTION READY with mesh anonymity");
-        info!("✅ Data integrity circuits: PRODUCTION READY with tamper-proofing");
-        info!("🚀 ALL ZK CIRCUITS: CRYPTOGRAPHICALLY SECURE AND PRODUCTION READY!");
+        info!("Transaction circuits: PRODUCTION READY with cryptographic soundness");
+        info!("Identity circuits: PRODUCTION READY with zero-knowledge privacy");
+        info!("Range proof circuits: PRODUCTION READY with bulletproof security");
+        info!("Storage access circuits: PRODUCTION READY with access control");
+        info!("Routing privacy circuits: PRODUCTION READY with mesh anonymity");
+        info!("Data integrity circuits: PRODUCTION READY with tamper-proofing");
+        info!(" ALL ZK CIRCUITS: CRYPTOGRAPHICALLY SECURE AND PRODUCTION READY!");
 
         Ok(Self {
             initialized: true,
@@ -363,7 +363,7 @@ impl ZkProofSystem {
         let verification_key = Self::generate_verification_key("transaction", &circuit_constraints)?;
         vk_map.insert("transaction".to_string(), verification_key);
         
-        info!("🔐 Transaction circuit: Real zero-knowledge constraints compiled");
+        info!("Transaction circuit: Real zero-knowledge constraints compiled");
         Ok(())
     }
     
@@ -373,7 +373,7 @@ impl ZkProofSystem {
         let verification_key = Self::generate_verification_key("identity", &circuit_constraints)?;
         vk_map.insert("identity".to_string(), verification_key);
         
-        info!("🆔 Identity circuit: Real biometric privacy constraints compiled");
+        info!("Identity circuit: Real biometric privacy constraints compiled");
         Ok(())
     }
     
@@ -427,7 +427,7 @@ impl ZkProofSystem {
         constraints.extend_from_slice(b"RANGE_CONSTRAINT:");
         constraints.extend_from_slice(&[1, 1, 1, 0, 0]); // All values < 2^64
         
-        info!("🔗 Transaction constraints: {} bytes of real cryptographic constraints", constraints.len());
+        info!("Transaction constraints: {} bytes of real cryptographic constraints", constraints.len());
         Ok(constraints)
     }
     
@@ -451,7 +451,7 @@ impl ZkProofSystem {
         constraints.extend_from_slice(b"UNIQUENESS_PROOF:");
         constraints.extend_from_slice(&[1, 1, 1, 1, 1, 1]); // Unique identifier
         
-        info!("🆔 Identity constraints: {} bytes of privacy-preserving constraints", constraints.len());
+        info!("Identity constraints: {} bytes of privacy-preserving constraints", constraints.len());
         Ok(constraints)
     }
     
@@ -545,39 +545,39 @@ impl ZkProofSystem {
 
     /// Verify transaction proof (production-optimized)
     pub fn verify_transaction(&self, proof: &Plonky2Proof) -> Result<bool> {
-        log::info!("🔍 ZkProofSystem::verify_transaction starting");
+        log::info!("ZkProofSystem::verify_transaction starting");
         
         if !self.initialized {
-            log::error!("❌ ZkProofSystem not initialized");
+            log::error!("ZkProofSystem not initialized");
             return Ok(false);
         }
-        log::info!("✅ ZkProofSystem is initialized");
+        log::info!("ZkProofSystem is initialized");
 
         // Verify proof structure and integrity
         if proof.proof.len() < 40 { // 5 * 8 bytes minimum
-            log::error!("❌ Proof too short: {} bytes (minimum 40)", proof.proof.len());
+            log::error!("Proof too short: {} bytes (minimum 40)", proof.proof.len());
             return Ok(false);
         }
-        log::info!("✅ Proof length valid: {} bytes", proof.proof.len());
+        log::info!("Proof length valid: {} bytes", proof.proof.len());
 
         if proof.proof_system != "ZHTP-Optimized-Transaction" {
-            log::error!("❌ Invalid proof system: '{}' (expected 'ZHTP-Optimized-Transaction')", proof.proof_system);
+            log::error!("Invalid proof system: '{}' (expected 'ZHTP-Optimized-Transaction')", proof.proof_system);
             return Ok(false);
         }
-        log::info!("✅ Proof system valid: '{}'", proof.proof_system);
+        log::info!("Proof system valid: '{}'", proof.proof_system);
 
         // Verify public inputs are consistent
         if proof.public_inputs.len() != 3 {
-            log::error!("❌ Invalid public inputs length: {} (expected 3)", proof.public_inputs.len());
+            log::error!("Invalid public inputs length: {} (expected 3)", proof.public_inputs.len());
             return Ok(false);
         }
-        log::info!("✅ Public inputs length valid: {}", proof.public_inputs.len());
+        log::info!("Public inputs length valid: {}", proof.public_inputs.len());
 
         // Extract and validate transaction data
         if proof.proof.len() >= 40 {
             // Check if this is a transaction circuit proof (longer format) or ZK system proof (shorter format)
             if proof.proof.len() >= 2048 {
-                log::info!("🔍 Using transaction circuit format (long proof: {} bytes)", proof.proof.len());
+                log::info!("Using transaction circuit format (long proof: {} bytes)", proof.proof.len());
                 // Transaction circuit format: sender_balance(0-8), receiver_balance(8-16), amount(16-24), fee(24-32)
                 let sender_balance = u64::from_le_bytes([
                     proof.proof[0], proof.proof[1], proof.proof[2], proof.proof[3],
@@ -592,37 +592,37 @@ impl ZkProofSystem {
                     proof.proof[28], proof.proof[29], proof.proof[30], proof.proof[31],
                 ]);
 
-                log::info!("🔍 Extracted values: sender_balance={}, amount={}, fee={}", sender_balance, amount, fee);
+                log::info!("Extracted values: sender_balance={}, amount={}, fee={}", sender_balance, amount, fee);
 
                 // For transaction circuit format, public inputs contain [amount, fee, nullifier_u64]
                 // We only validate the first two since nullifier validation is different
                 if proof.public_inputs.len() >= 2 {
                     if amount != proof.public_inputs[0] {
-                        log::error!("❌ Amount mismatch: proof={}, public_input={}", amount, proof.public_inputs[0]);
+                        log::error!("Amount mismatch: proof={}, public_input={}", amount, proof.public_inputs[0]);
                         return Ok(false);
                     }
                     if fee != proof.public_inputs[1] {
-                        log::error!("❌ Fee mismatch: proof={}, public_input={}", fee, proof.public_inputs[1]);
+                        log::error!("Fee mismatch: proof={}, public_input={}", fee, proof.public_inputs[1]);
                         return Ok(false);
                     }
-                    log::info!("✅ Amount and fee match public inputs");
+                    log::info!("Amount and fee match public inputs");
                 }
 
                 // Validate transaction constraints
                 if amount + fee > sender_balance {
-                    log::error!("❌ Insufficient balance: amount({}) + fee({}) = {} > sender_balance({})", 
+                    log::error!("Insufficient balance: amount({}) + fee({}) = {} > sender_balance({})", 
                                amount, fee, amount + fee, sender_balance);
                     return Ok(false);
                 }
-                log::info!("✅ Balance constraint satisfied");
+                log::info!("Balance constraint satisfied");
 
                 if amount == 0 {
-                    log::error!("❌ Zero amount transaction not allowed");
+                    log::error!("Zero amount transaction not allowed");
                     return Ok(false);
                 }
-                log::info!("✅ Non-zero amount: {}", amount);
+                log::info!("Non-zero amount: {}", amount);
             } else {
-                log::info!("🔍 Using ZK system format (short proof: {} bytes)", proof.proof.len());
+                log::info!("Using ZK system format (short proof: {} bytes)", proof.proof.len());
                 // ZK system native format: sender_balance(0-8), amount(8-16), fee(16-24)
                 let sender_balance = u64::from_le_bytes([
                     proof.proof[0], proof.proof[1], proof.proof[2], proof.proof[3],
@@ -637,7 +637,7 @@ impl ZkProofSystem {
                     proof.proof[20], proof.proof[21], proof.proof[22], proof.proof[23],
                 ]);
 
-                log::info!("🔍 Extracted values (ZK format): sender_balance={}, amount={}, fee={}", sender_balance, amount, fee);
+                log::info!("Extracted values (ZK format): sender_balance={}, amount={}, fee={}", sender_balance, amount, fee);
 
                 // For ZK system format, validate exact match with public inputs
                 if proof.public_inputs.len() >= 3 {
@@ -1413,7 +1413,7 @@ mod tests {
         let storage_proof = zk_system.prove_storage_access(54321, 98765, 11111, 5, 3)?;
         assert!(zk_system.verify_storage_access(&storage_proof)?);
         
-        println!("🎉 All ZK proof types working correctly!");
+        println!(" All ZK proof types working correctly!");
         
         Ok(())
     }

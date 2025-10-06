@@ -184,7 +184,7 @@ impl TransactionCircuit {
 
     /// Generate proof data using PURE ZK circuits only
     fn generate_proof_data(&self, witness: &TransactionWitness) -> Vec<u8> {
-        tracing::info!("� Using PURE ZK transaction proof generation - NO FALLBACKS");
+        tracing::info!(" Using PURE ZK transaction proof generation - NO FALLBACKS");
         
         let circuit = self.circuit.as_ref()
             .expect("Circuit must be built before proof generation");
@@ -206,11 +206,11 @@ impl TransactionCircuit {
         // Generate REAL ZK proof using Plonky2 circuit
         match circuit.prove(&public_inputs, &private_inputs) {
             Ok(zk_proof) => {
-                tracing::info!("✅ Generated PURE ZK transaction proof: {} bytes", zk_proof.proof.len());
+                tracing::info!("Generated PURE ZK transaction proof: {} bytes", zk_proof.proof.len());
                 zk_proof.proof
             },
             Err(e) => {
-                tracing::error!("❌ ZK proof generation failed: {:?}", e);
+                tracing::error!("ZK proof generation failed: {:?}", e);
                 // NO FALLBACK - fail hard if ZK proof generation fails
                 panic!("ZK proof generation failed - this indicates a serious constraint violation or implementation bug: {:?}", e);
             }
@@ -219,14 +219,14 @@ impl TransactionCircuit {
 
     /// Verify a transaction proof using PURE ZK circuit verification only
     pub fn verify(&self, proof: &TransactionProof) -> Result<bool> {
-        tracing::info!("🔐 Using PURE ZK transaction proof verification - NO FALLBACKS");
+        tracing::info!("Using PURE ZK transaction proof verification - NO FALLBACKS");
         
         let circuit = self.circuit.as_ref()
             .ok_or_else(|| anyhow::anyhow!("Circuit not built"))?;
 
         // Verify circuit hash matches
         if proof.circuit_hash != circuit.circuit_hash {
-            tracing::error!("❌ Circuit hash mismatch");
+            tracing::error!("Circuit hash mismatch");
             return Ok(false);
         }
 
@@ -260,14 +260,14 @@ impl TransactionCircuit {
         match zk_system.verify_transaction(&zk_proof) {
             Ok(result) => {
                 if result {
-                    tracing::info!("✅ Transaction proof verified using PURE ZK circuit");
+                    tracing::info!("Transaction proof verified using PURE ZK circuit");
                 } else {
-                    tracing::error!("❌ ZK circuit verification failed - proof is invalid");
+                    tracing::error!("ZK circuit verification failed - proof is invalid");
                 }
                 Ok(result)
             },
             Err(e) => {
-                tracing::error!("❌ ZK verification system error: {:?}", e);
+                tracing::error!("ZK verification system error: {:?}", e);
                 // NO FALLBACK - fail hard if ZK verification fails
                 Err(anyhow::anyhow!("ZK verification failed - no fallbacks allowed: {:?}", e))
             }

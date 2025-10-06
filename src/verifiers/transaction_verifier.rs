@@ -263,7 +263,7 @@ impl TransactionVerifier {
             Ok(VerificationResult::Valid {
                 circuit_id: "transaction_verifier".to_string(),
                 verification_time_ms: verification_time,
-                // ✅ FIXED: No public inputs that leak amount/fee - privacy preserved
+                // FIXED: No public inputs that leak amount/fee - privacy preserved
                 public_inputs: vec![],
             })
         } else {
@@ -422,7 +422,7 @@ impl TransactionVerifier {
         
         for tx_proof in &batch.transaction_proofs {
             // Verify transaction proof using REAL ZK circuit verification
-            // ✅ This uses actual Plonky2 circuits through ZkTransactionProof
+            // This uses actual Plonky2 circuits through ZkTransactionProof
             match tx_proof.verify() {
                 Ok(is_valid) => {
                     if !is_valid {
