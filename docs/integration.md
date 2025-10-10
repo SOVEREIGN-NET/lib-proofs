@@ -79,7 +79,7 @@ impl PrivateTransaction {
     fn generate_proof(&self) -> Result<lib_proofs::plonky2::Plonky2Proof> {
         let zk_system = ZkProofSystem::new()?;
         
-        // In a real implementation, you'd derive these from the keypairs
+        // In a implementation, you'd derive these from the keypairs
         let sender_balance = 1000; // Retrieved from blockchain state
         let sender_secret = 12345;  // Derived from keypair
         let nullifier_seed = 67890; // Generated deterministically

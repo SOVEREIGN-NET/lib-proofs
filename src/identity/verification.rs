@@ -258,7 +258,7 @@ fn verify_identity_commitment(commitment: &super::IdentityCommitment) -> Result<
 fn verify_knowledge_proof(proof: &ZkIdentityProof) -> Result<bool> {
     println!("Starting knowledge proof verification");
     
-    // Try to use real ZK circuits for verification
+    // Try to use ZK circuits for verification
     match crate::plonky2::ZkProofSystem::new() {
         Ok(_zk_system) => {
             println!("ZK system initialized for knowledge proof verification");
@@ -361,13 +361,13 @@ fn verify_issuer_signature(proof: &ZkCredentialProof, schema: &CredentialSchema)
     
     let message_hash = hash_blake3(&signed_data);
     
-    // Use real signature verification from lib-crypto
+    // Use signature verification from lib-crypto
     println!("About to verify signature with lib-crypto...");
     println!("Message hash: {:?}", &message_hash[0..8]);
     println!("Signature: {:?}", &proof.issuer_signature[0..8]);
     println!("Public key: {:?}", &issuer_public_key[0..8]);
     
-    // ENFORCE REAL CRYPTOGRAPHIC SIGNATURE VERIFICATION - NO FALLBACKS
+    // ENFORCE CRYPTOGRAPHIC SIGNATURE VERIFICATION - NO FALLBACKS
     match verify_signature(&message_hash, &proof.issuer_signature, &issuer_public_key) {
         Ok(valid) => {
             if valid {
@@ -386,12 +386,12 @@ fn verify_issuer_signature(proof: &ZkCredentialProof, schema: &CredentialSchema)
 }
 
 fn verify_claims_commitment(proof: &ZkCredentialProof) -> Result<bool> {
-    // Use real ZK circuits for claims commitment verification
+    // Use ZK circuits for claims commitment verification
     if proof.claims_commitment == [0u8; 32] {
         return Ok(false);
     }
     
-    // Try to use the real ZK proof system for verification
+    // Try to use the ZK proof system for verification
     match crate::plonky2::ZkProofSystem::new() {
         Ok(zk_system) => {
             // Use ZK circuit to verify the commitment contains the revealed claims
@@ -516,12 +516,12 @@ fn verify_revealed_claims(proof: &ZkCredentialProof, schema: &CredentialSchema) 
 }
 
 fn verify_credential_validity_proof(proof: &ZkCredentialProof, schema: &CredentialSchema) -> Result<bool> {
-    // Use real ZK circuits for validity proof verification
+    // Use ZK circuits for validity proof verification
     if proof.validity_proof.len() < 32 {
         return Ok(false);
     }
     
-    // Try to use the real ZK proof system for verification
+    // Try to use the ZK proof system for verification
     match crate::plonky2::ZkProofSystem::new() {
         Ok(zk_system) => {
             // Use ZK circuit to verify the validity proof
@@ -874,7 +874,7 @@ mod tests {
         println!("Revealed claims valid: {}", revealed_claims_valid);
         println!("Validity proof valid: {}", validity_valid);
         
-        println!("🚧 Test partially successful - signature verification fixed!");
+        println!(" Test partially successful - signature verification fixed!");
         println!("Next steps: Fix claims commitment and validity proof verification");
         
         // TODO: Uncomment when all steps pass

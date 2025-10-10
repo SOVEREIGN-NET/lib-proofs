@@ -372,7 +372,7 @@ impl RecursiveProofAggregator {
     }
 
     fn prove_state_transition(&self, previous_state: &[u8; 32], new_state: &[u8; 32], transaction_root: &[u8; 32], transactions: &[BatchedPrivateTransaction]) -> Result<ZkProof> {
-        // Use the actual state transition circuit to generate a real proof
+        // Use the actual state transition circuit to generate a proof
         let total_tx_count: u64 = transactions.iter().map(|batch| batch.transaction_proofs.len() as u64).sum();
         
         // Create witness for state transition circuit
@@ -421,7 +421,7 @@ impl RecursiveProofAggregator {
         };
         
         // Generate a properly formatted proof that will pass verification
-        // This creates a real cryptographic hash-based proof using the witness data
+        // This creates a cryptographic hash-based proof using the witness data
         let mut proof_input_data = Vec::new();
         proof_input_data.extend_from_slice(&witness.prev_state.merkle_root);
         proof_input_data.extend_from_slice(&witness.new_state.merkle_root);

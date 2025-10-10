@@ -1,6 +1,6 @@
 //! Identity prover implementation
 //! 
-//! Provides real zero-knowledge identity proof generation using the production
+//! Provides zero-knowledge identity proof generation using the production
 //! ZK proof system with actual cryptographic security guarantees.
 
 use crate::identity::{ZkIdentityProof, IdentityCommitment, IdentityAttributes};
@@ -9,7 +9,7 @@ use anyhow::{Result, anyhow};
 use lib_crypto::hashing::hash_blake3;
 use tracing::{info, warn, error};
 
-/// Identity prover for generating identity proofs with real ZK circuits
+/// Identity prover for generating identity proofs with ZK circuits
 pub struct IdentityProver {
     /// Private key for identity commitments
     pub private_key: [u8; 32],
@@ -55,18 +55,18 @@ impl IdentityProver {
         }
     }
 
-    /// Generate real zero-knowledge identity proof
+    /// Generate zero-knowledge identity proof
     pub fn prove_identity(&self, claims: &[String]) -> Result<ZkIdentityProof> {
         info!("Generating identity proof for {} claims", claims.len());
         
         // Build identity attributes from claims
         let attributes = self.build_attributes_from_claims(claims)?;
         
-        // Try to use real ZK proof system first
+        // Try to use ZK proof system first
         if let Some(ref zk_system) = self.zk_system {
             match self.generate_zk_circuit_proof(zk_system, &attributes, claims) {
                 Ok(proof) => {
-                    info!("Generated real ZK identity proof using circuit");
+                    info!("Generated ZK identity proof using circuit");
                     return Ok(proof);
                 },
                 Err(e) => {
@@ -80,7 +80,7 @@ impl IdentityProver {
         Err(anyhow::anyhow!("No ZK system available - identity prover requires ZK circuits"))
     }
 
-    /// Generate proof using real ZK circuits
+    /// Generate proof using ZK circuits
     fn generate_zk_circuit_proof(
         &self,
         zk_system: &ZkProofSystem,
@@ -131,7 +131,7 @@ impl IdentityProver {
             0
         };
         
-        // Generate ZK proof using real circuit
+        // Generate ZK proof using circuit
         let zk_proof = zk_system.prove_identity(
             identity_secret,
             age,

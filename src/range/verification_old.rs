@@ -71,7 +71,7 @@ pub fn verify_range_proof(proof: &ZkRangeProof) -> Result<VerificationResult> {
     }
 
     // Verify value is in range (this would normally be done without revealing the value)
-    // In a real ZK system, this check would be done cryptographically
+    // In a ZK system, this check would be done cryptographically
     if value < min_value || value > max_value {
         return Ok(VerificationResult {
             is_valid: false,

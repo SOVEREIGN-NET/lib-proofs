@@ -1,6 +1,6 @@
 //! Plonky2 zero-knowledge proof PRODUCTION implementation for ZHTP
 //! 
-//! This is the real ZK proof system implementation, moved from lib-crypto
+//! This is the ZK proof system implementation, moved from lib-crypto
 //! to provide actual ZK functionality instead of just interfaces.
 
 use anyhow::Result;
@@ -71,7 +71,7 @@ pub trait ZkProofSystem {
     fn prove_pqc_key_properties(&self, private_key: &PrivateKey) -> Result<Plonky2Proof>;
 }
 
-/// Production implementation with real ZK functionality
+/// Production implementation with ZK functionality
 #[derive(Clone, Debug)]
 pub struct ProductionZkProofSystem {
     circuit_cache: HashMap<String, Vec<u8>>,
@@ -93,7 +93,7 @@ impl ZkProofSystem for ProductionZkProofSystem {
         min_age: u64,
         required_jurisdiction: u64,
     ) -> Result<Plonky2Proof> {
-        // TODO: Real Plonky2 circuit implementation
+        // TODO: Plonky2 circuit implementation
         // For now, simulate the proof structure
         let circuit_inputs = format!("{}{}{}{}{}{}", identity_secret, age, jurisdiction_hash, credential_hash, min_age, required_jurisdiction);
         let proof_hash = hash_blake3(circuit_inputs.as_bytes())?;
@@ -118,7 +118,7 @@ impl ZkProofSystem for ProductionZkProofSystem {
             return Err(anyhow::anyhow!("Value {} is outside range [{}, {}]", value, min_value, max_value));
         }
         
-        // TODO: Real range proof circuit
+        // TODO: range proof circuit
         let circuit_inputs = format!("{}{}{}{}", value, blinding_factor, min_value, max_value);
         let proof_hash = hash_blake3(circuit_inputs.as_bytes())?;
         
@@ -143,7 +143,7 @@ impl ZkProofSystem for ProductionZkProofSystem {
             return Err(anyhow::anyhow!("Insufficient permission level: {} < {}", permission_level, required_permission));
         }
         
-        // TODO: Real access control circuit
+        // TODO: access control circuit
         let circuit_inputs = format!("{}{}{}{}{}", access_key, requester_secret, data_hash, permission_level, required_permission);
         let proof_hash = hash_blake3(circuit_inputs.as_bytes())?;
         
@@ -156,17 +156,17 @@ impl ZkProofSystem for ProductionZkProofSystem {
     }
 
     fn verify_identity(&self, proof: &Plonky2Proof) -> Result<bool> {
-        // TODO: Real verification logic
+        // TODO: verification logic
         Ok(!proof.proof_data.is_empty() && !proof.verification_key.is_empty())
     }
 
     fn verify_range(&self, proof: &Plonky2Proof) -> Result<bool> {
-        // TODO: Real verification logic
+        // TODO: verification logic
         Ok(!proof.proof_data.is_empty() && proof.public_inputs.len() >= 2)
     }
 
     fn verify_storage_access(&self, proof: &Plonky2Proof) -> Result<bool> {
-        // TODO: Real verification logic  
+        // TODO: verification logic  
         Ok(!proof.proof_data.is_empty() && proof.public_inputs.len() >= 2)
     }
 
@@ -176,7 +176,7 @@ impl ZkProofSystem for ProductionZkProofSystem {
         let message_hash = hash_blake3(message)?;
         let key_commitment = hash_blake3(&private_key.dilithium_sk)?;
         
-        // TODO: Real Plonky2 circuit for Dilithium signature proof
+        // TODO: Plonky2 circuit for Dilithium signature proof
         let circuit_inputs = [key_commitment, message_hash].concat();
         let proof_hash = hash_blake3(&circuit_inputs)?;
         
@@ -197,7 +197,7 @@ impl ZkProofSystem for ProductionZkProofSystem {
         let ring_hash = hash_blake3(&ring_members.concat())?;
         let key_hash = hash_blake3(secret_key)?;
         
-        // TODO: Real ring signature ZK circuit
+        // TODO: ring signature ZK circuit
         let circuit_inputs = [ring_hash, key_hash].concat();
         let proof_hash = hash_blake3(&circuit_inputs)?;
         
@@ -214,7 +214,7 @@ impl ZkProofSystem for ProductionZkProofSystem {
         let dilithium_hash = hash_blake3(&private_key.dilithium_sk)?;
         let kyber_hash = hash_blake3(&private_key.kyber_sk)?;
         
-        // TODO: Real PQC key property circuit
+        // TODO: PQC key property circuit
         let circuit_inputs = [dilithium_hash, kyber_hash].concat();
         let proof_hash = hash_blake3(&circuit_inputs)?;
         
@@ -230,7 +230,7 @@ impl ZkProofSystem for ProductionZkProofSystem {
 // Type alias for backward compatibility
 pub type ZKProof = Plonky2Proof;
 
-/// Production convenience functions with real implementations
+/// Production convenience functions with implementations
 pub fn prove_identity(
     private_key: &PrivateKey,
     age: u64,

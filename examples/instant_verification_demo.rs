@@ -50,7 +50,7 @@ fn simulate_blockchain_growth(aggregator: &mut RecursiveProofAggregator) -> Resu
         println!("   Block aggregated - {} transactions → 1 proof", transaction_count);
         
         // Step 2: Create recursive chain proof (simplified for demo)
-        // This demonstrates the concept - in practice would use real block proof
+        // This demonstrates the concept - in practice would use block proof
         let mock_block_proof = create_mock_block_proof(block_height);
         let new_chain_proof = aggregator.create_recursive_chain_proof(
             &mock_block_proof,
@@ -75,7 +75,7 @@ fn simulate_blockchain_growth(aggregator: &mut RecursiveProofAggregator) -> Resu
                 .map(|h| 10 + (h * 5))
                 .sum();
                 
-            println!("   📈 Chain Stats: {} blocks, {} total transactions, 1 proof verification", 
+            println!("    Chain Stats: {} blocks, {} total transactions, 1 proof verification", 
                 block_height, total_transactions);
         }
     }

@@ -318,7 +318,7 @@ fn blockchain_integration_example() -> Result<()> {
         67890, // nullifier
     )?;
     
-    // In a real blockchain integration, you would:
+    // In a blockchain integration, you would:
     // 1. Serialize the proof
     // 2. Submit to the blockchain
     // 3. Blockchain verifies the proof on-chain

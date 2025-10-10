@@ -95,7 +95,7 @@ fn basic_transaction_proof() -> Result<()> {
     println!("Transaction proof verification: {}", 
         if is_valid { "PASSED" } else { "FAILED" });
     
-    // Try with insufficient balance (should fail in real implementation)
+    // Try with insufficient balance (should fail in implementation)
     println!("\nTesting with insufficient balance...");
     let insufficient_balance = 200; // Less than amount + fee
     
@@ -162,7 +162,7 @@ impl PrivatePaymentSystem {
         let keypair = KeyPair::generate()?;
         let account = PrivateAccount {
             keypair,
-            encrypted_balance: initial_balance, // In real system, this would be encrypted
+            encrypted_balance: initial_balance, // In system, this would be encrypted
             nonce: 0,
         };
         
@@ -235,7 +235,7 @@ impl PrivatePaymentSystem {
     
     // Helper methods
     fn generate_nullifier_seed(&self, keypair: &KeyPair, nonce: u64) -> u64 {
-        // In real implementation, this would be a cryptographic hash
+        // In implementation, this would be a cryptographic hash
         // hash(keypair.private_key, nonce)
         12345 + nonce // Simplified for example
     }
@@ -257,7 +257,7 @@ impl PrivatePaymentSystem {
         receiver_id: &str,
         transfer: &PrivateTransferProof,
     ) -> Result<()> {
-        // In a real system, this would update encrypted/committed balances
+        // In a system, this would update encrypted/committed balances
         // For this example, we'll simulate the updates
         
         if let Some(sender) = self.accounts.get_mut(sender_id) {
@@ -455,7 +455,7 @@ impl AgeVerificationSystem {
             });
         }
         
-        // In a real system, you would also verify:
+        // In a system, you would also verify:
         // 1. The public key is associated with a trusted identity
         // 2. The credential hash corresponds to a valid credential
         // 3. The proof parameters match the request requirements
@@ -758,17 +758,17 @@ impl DecentralizedStorageNode {
     }
     
     fn generate_storage_secret(&self, data_hash: u64, owner_id: u64) -> u64 {
-        // In real implementation: hash(node_secret, data_hash, owner_id)
+        // In implementation: hash(node_secret, data_hash, owner_id)
         self.node_id * 1000 + data_hash % 1000 + owner_id % 100
     }
     
     fn derive_access_key(&self, user_id: u64, data_hash: u64) -> u64 {
-        // In real implementation: hash(user_credentials, data_hash)
+        // In implementation: hash(user_credentials, data_hash)
         user_id * 7919 + data_hash % 7919
     }
     
     fn generate_user_secret(&self, user_id: u64) -> u64 {
-        // In real implementation: derived from user's private key
+        // In implementation: derived from user's private key
         user_id * 991 + 12345
     }
 }
@@ -1027,7 +1027,7 @@ impl NetworkNode {
         println!("Requirements: max {} hops, min {} bandwidth", 
             quality_requirements.max_hops, quality_requirements.min_bandwidth);
         
-        // In a real network, this would broadcast the request
+        // In a network, this would broadcast the request
         // For this example, we'll simulate responses from other nodes
         Ok(Vec::new()) // Placeholder
     }
@@ -1273,7 +1273,7 @@ fn batch_verification_example() -> Result<()> {
     println!("\nStep 3: Batch verification");
     let start = std::time::Instant::now();
     
-    // In a real implementation, batch verification would be significantly faster
+    // In a implementation, batch verification would be significantly faster
     let batch_valid = tx_proofs.iter().all(|proof| {
         zk_system.verify_transaction(proof).unwrap_or(false)
     });
@@ -1424,7 +1424,7 @@ fn main() -> Result<()> {
     // Complete application
     complete_application_example()?;
     
-    println!("\n🎉 All examples and tutorials completed successfully!");
+    println!("\n All examples and tutorials completed successfully!");
     Ok(())
 }
 ```

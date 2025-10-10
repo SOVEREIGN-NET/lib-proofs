@@ -77,13 +77,13 @@ impl BlockchainStateProvider for MockBlockchainState {
     }
     
     fn verify_transaction_inclusion(&self, _tx_hash: &[u8; 32], block_height: u64) -> Result<bool> {
-        // Mock implementation - in real version would verify against actual block
+        // Mock implementation - in version would verify against actual block
         Ok(self.transaction_merkle_roots.contains_key(&block_height))
     }
     
     fn get_merkle_proof(&self, _tx_hash: &[u8; 32], block_height: u64) -> Result<Option<MerkleProof>> {
         if let Some(root) = self.transaction_merkle_roots.get(&block_height) {
-            // Mock proof - in real implementation would generate actual Merkle proof
+            // Mock proof - in implementation would generate actual Merkle proof
             Ok(Some(MerkleProof {
                 leaf_index: 0,
                 proof_hashes: vec![*root],
@@ -297,7 +297,7 @@ impl TransactionVerifier {
 
     /// Parallel verification for large batches
     pub fn verify_batch_parallel(&mut self, proofs: &[TransactionProof]) -> Result<Vec<bool>> {
-        // Note: In a real implementation, this would use actual parallelization
+        // Note: In a implementation, this would use actual parallelization
         // For now, we'll simulate parallel processing with chunked verification
         
         let chunk_size = std::cmp::max(1, proofs.len() / num_cpus::get());
@@ -421,7 +421,7 @@ impl TransactionVerifier {
         let mut total_nullifiers = 0;
         
         for tx_proof in &batch.transaction_proofs {
-            // Verify transaction proof using REAL ZK circuit verification
+            // Verify transaction proof using ZK circuit verification
             // This uses actual Plonky2 circuits through ZkTransactionProof
             match tx_proof.verify() {
                 Ok(is_valid) => {
@@ -830,7 +830,7 @@ impl TransactionVerifier {
             };
             
             // For this implementation, we'll use a deterministic sibling hash
-            // In a real implementation, this would come from the actual Merkle tree
+            // In a implementation, this would come from the actual Merkle tree
             let sibling_hash = self.compute_deterministic_sibling_hash(sibling_index, current_level_size)?;
             path.push(sibling_hash);
             

@@ -138,7 +138,7 @@ impl TransactionCircuit {
         let amount_plus_fee = builder.add_addition(amount_wire, fee_wire);
         
         // Convert to range constraint (sender_balance - (amount + fee) >= 0)
-        // This is simplified - real implementation would use proper subtraction
+        // This is simplified - implementation would use proper subtraction
         builder.add_range_constraint(sender_balance_wire, 0, u64::MAX);
         builder.add_range_constraint(amount_plus_fee, 0, u64::MAX);
 
@@ -203,7 +203,7 @@ impl TransactionCircuit {
             u64::from_le_bytes(witness.receiver_blinding[0..8].try_into().unwrap_or([0; 8])),
         ];
 
-        // Generate REAL ZK proof using Plonky2 circuit
+        // Generate ZK proof using Plonky2 circuit
         match circuit.prove(&public_inputs, &private_inputs) {
             Ok(zk_proof) => {
                 tracing::info!("Generated PURE ZK transaction proof: {} bytes", zk_proof.proof.len());

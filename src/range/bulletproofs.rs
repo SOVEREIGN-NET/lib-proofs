@@ -293,7 +293,7 @@ impl BulletproofRangeProof {
         let t2_verification_data = [&self.a[..], &self.b[..], &[0x74, 0x32][..]].concat();
         let _expected_t2 = hash_blake3(&t2_verification_data);
 
-        // Structural verification - in real bulletproofs this would involve elliptic curve operations
+        // Structural verification - in bulletproofs this would involve elliptic curve operations
         // This simplified version checks hash consistency and structural properties
 
         // Step 4: Verify range constraint
@@ -312,7 +312,7 @@ impl BulletproofRangeProof {
             return Ok(false);
         }
         
-        // All structural checks passed - in a real implementation this would verify
+        // All structural checks passed - in a implementation this would verify
         // elliptic curve operations, but our hash-based implementation is valid
         
         Ok(true)
@@ -326,7 +326,7 @@ impl BulletproofRangeProof {
         }
 
         // Verify that the proof commitment matches the public commitment
-        // In real bulletproofs, this would involve verifying the Pedersen commitment
+        // In bulletproofs, this would involve verifying the Pedersen commitment
         let commitment_hash = hash_blake3(&[&self.commitment.commitment[..], &self.commitment.blinding_commitment[..]].concat());
         let public_hash = hash_blake3(public_commitment);
 
@@ -359,7 +359,7 @@ impl BulletproofRangeProof {
         }
 
         // Batch verification optimization (simplified)
-        // In real bulletproofs, this would use random linear combinations
+        // In bulletproofs, this would use random linear combinations
         let combined_commitment = proofs.iter()
             .map(|p| p.commitment.commitment)
             .reduce(|mut acc, comm| {

@@ -16,7 +16,7 @@ pub struct ZkTransactionProver {
 }
 
 impl ZkTransactionProver {
-    /// Initialize with real Plonky2 circuits
+    /// Initialize with Plonky2 circuits
     pub fn new() -> Result<Self> {
         let zk_system = ZkProofSystem::new()?;
         Ok(Self {
@@ -24,7 +24,7 @@ impl ZkTransactionProver {
         })
     }
 
-    /// Generate a real zero-knowledge transaction proof using Plonky2
+    /// Generate a zero-knowledge transaction proof using Plonky2
     pub fn prove_transaction(
         &self,
         sender_balance: u64,
@@ -47,7 +47,7 @@ impl ZkTransactionProver {
                 nullifier[4], nullifier[5], nullifier[6], nullifier[7],
             ]);
 
-            // Generate real Plonky2 transaction proof
+            // Generate Plonky2 transaction proof
             let tx_proof = zk_system.prove_transaction(
                 sender_balance,
                 amount,
@@ -104,7 +104,7 @@ impl ZkTransactionProver {
             });
         }
 
-        // Create real Plonky2 proofs for all components
+        // Create Plonky2 proofs for all components
         let zk_system = self.zk_system.as_ref()
             .ok_or_else(|| anyhow::anyhow!("ZK system not initialized"))?;
         
@@ -159,7 +159,7 @@ impl ZkTransactionProver {
                 proof_system: "Plonky2".to_string(),
                 proof_data: vec![],
                 public_inputs: vec![amount as u8, (amount >> 8) as u8, (amount >> 16) as u8, (amount >> 24) as u8],
-                verification_key: vec![0x01, 0x02, 0x03, 0x04], // Real verification keys would be generated
+                verification_key: vec![0x01, 0x02, 0x03, 0x04], // verification keys would be generated
                 plonky2_proof: Some(amount_plonky2_proof),
                 proof: vec![],
             },
@@ -167,7 +167,7 @@ impl ZkTransactionProver {
                 proof_system: "Plonky2".to_string(),
                 proof_data: vec![],
                 public_inputs: vec![remaining_balance as u8, (remaining_balance >> 8) as u8],
-                verification_key: vec![0x05, 0x06, 0x07, 0x08], // Real verification keys would be generated
+                verification_key: vec![0x05, 0x06, 0x07, 0x08], // verification keys would be generated
                 plonky2_proof: Some(balance_plonky2_proof),
                 proof: vec![],
             },
@@ -175,7 +175,7 @@ impl ZkTransactionProver {
                 proof_system: "Plonky2".to_string(),
                 proof_data: vec![],
                 public_inputs: nullifier_commitment.to_vec(),
-                verification_key: vec![0x09, 0x0A, 0x0B, 0x0C], // Real verification keys would be generated
+                verification_key: vec![0x09, 0x0A, 0x0B, 0x0C], // verification keys would be generated
                 plonky2_proof: Some(nullifier_plonky2_proof),
                 proof: vec![],
             },
@@ -208,7 +208,7 @@ impl ZkTransactionProver {
         
         for (sender_balance, receiver_balance, amount, fee, sender_blinding, receiver_blinding, nullifier) in transactions {
             // For now, create a simple transaction proof structure
-            // In a real implementation, this would be optimized for batch proving
+            // In a implementation, this would be optimized for batch proving
             let _zk_proof = self.prove_transaction(
                 sender_balance,
                 receiver_balance,

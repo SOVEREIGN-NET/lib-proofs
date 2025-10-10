@@ -371,7 +371,7 @@ mod tests {
         let config = IdentityCircuitConfig::default();
         let verifier = BatchIdentityVerifier::new(config)?;
         
-        // For this test, we'll create empty proofs since we can't easily generate real ones
+        // For this test, we'll create empty proofs since we can't easily generate ones
         let proofs = vec![];
         let results = verifier.verify_batch(&proofs)?;
         assert!(results.is_empty());

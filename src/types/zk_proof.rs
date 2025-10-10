@@ -17,7 +17,7 @@ pub struct ZkProof {
     pub public_inputs: Vec<u8>,
     /// Verification key (for circuit binding)
     pub verification_key: Vec<u8>,
-    /// Real Plonky2 proof data (primary proof mechanism)
+    /// Plonky2 proof data (primary proof mechanism)
     pub plonky2_proof: Option<Plonky2Proof>,
     /// Deprecated proof format (kept for data structure compatibility only)
     pub proof: Vec<u8>,
@@ -58,7 +58,7 @@ impl ZkProof {
 
     /// Create a ZkProof from public inputs (generates proof internally)
     pub fn from_public_inputs(public_inputs: Vec<u64>) -> anyhow::Result<Self> {
-        // Try to create a real Plonky2 proof
+        // Try to create a Plonky2 proof
         match crate::plonky2::ZkProofSystem::new() {
             Ok(zk_system) => {
                 // Use the ZK system to generate a proof from public inputs

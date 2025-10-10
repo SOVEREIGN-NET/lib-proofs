@@ -147,7 +147,7 @@ impl AggregatedStateProof {
             return Ok(false); // No proof content
         }
         
-        // In a real implementation, would verify the plonky2_proof
+        // In a implementation, would verify the plonky2_proof
         // For now, assume valid if basic structure checks pass
         Ok(true)
     }

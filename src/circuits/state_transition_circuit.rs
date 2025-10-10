@@ -409,7 +409,7 @@ impl StateTransitionCircuit {
         let mut hash_wires: Vec<usize> = tx_hashes.iter()
             .map(|hash| {
                 let wire = builder.add_private_input(None);
-                // In a real implementation, we'd constrain this wire to equal the hash
+                // In a implementation, we'd constrain this wire to equal the hash
                 wire
             })
             .collect();
@@ -460,7 +460,7 @@ impl StateTransitionCircuit {
         // Process each level of the Merkle path
         for path_element in merkle_path {
             let sibling_wire = builder.add_private_input(None);
-            // In a real implementation, we'd need to handle left/right positioning
+            // In a implementation, we'd need to handle left/right positioning
             current_hash = builder.add_hash(vec![current_hash, sibling_wire]);
         }
         

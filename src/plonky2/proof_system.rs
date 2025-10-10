@@ -114,7 +114,7 @@ impl CircuitBuilder {
     /// Add a private input (wire)
     pub fn add_private_input(&mut self, _wire_index: Option<usize>) -> usize {
         // For now, return a simple wire index
-        // In a real implementation, this would create actual circuit wires
+        // In a implementation, this would create actual circuit wires
         self.gates.len()
     }
 
@@ -188,7 +188,7 @@ impl CircuitBuilder {
 
     /// Add an output wire
     pub fn add_output(&mut self, wire: usize) -> usize {
-        // In a real implementation, this would mark the wire as an output
+        // In a implementation, this would mark the wire as an output
         wire
     }
 
@@ -301,7 +301,7 @@ pub struct Plonky2Proof {
     pub private_input_commitment: [u8; 32],
 }
 
-/// Production ZK proof system with real cryptographic security
+/// Production ZK proof system with cryptographic security
 pub struct ZkProofSystem {
     initialized: bool,
     /// Circuit verification keys (reserved for future use)
@@ -328,13 +328,13 @@ pub struct ZkProofStats {
 }
 
 impl ZkProofSystem {
-    /// Initialize the REAL production ZK proof system
+    /// Initialize the production ZK proof system
     pub fn new() -> Result<Self> {
         info!("Initializing PRODUCTION ZK proof system with cryptographic security...");
         
         let mut verification_keys = HashMap::new();
         
-        // Initialize real circuit verification keys
+        // Initialize circuit verification keys
         Self::setup_transaction_circuit(&mut verification_keys)?;
         Self::setup_identity_circuit(&mut verification_keys)?;
         Self::setup_range_proof_circuit(&mut verification_keys)?;
@@ -357,27 +357,27 @@ impl ZkProofSystem {
         })
     }
     
-    /// Setup real transaction circuit with cryptographic constraints
+    /// Setup transaction circuit with cryptographic constraints
     fn setup_transaction_circuit(vk_map: &mut HashMap<String, Vec<u8>>) -> Result<()> {
         let circuit_constraints = Self::compile_transaction_constraints()?;
         let verification_key = Self::generate_verification_key("transaction", &circuit_constraints)?;
         vk_map.insert("transaction".to_string(), verification_key);
         
-        info!("Transaction circuit: Real zero-knowledge constraints compiled");
+        info!("Transaction circuit: zero-knowledge constraints compiled");
         Ok(())
     }
     
-    /// Setup real identity circuit with biometric privacy
+    /// Setup identity circuit with biometric privacy
     fn setup_identity_circuit(vk_map: &mut HashMap<String, Vec<u8>>) -> Result<()> {
         let circuit_constraints = Self::compile_identity_constraints()?;
         let verification_key = Self::generate_verification_key("identity", &circuit_constraints)?;
         vk_map.insert("identity".to_string(), verification_key);
         
-        info!("Identity circuit: Real biometric privacy constraints compiled");
+        info!("Identity circuit: biometric privacy constraints compiled");
         Ok(())
     }
     
-    /// Setup other circuits with real cryptographic implementations
+    /// Setup other circuits with cryptographic implementations
     fn setup_range_proof_circuit(vk_map: &mut HashMap<String, Vec<u8>>) -> Result<()> {
         let circuit_constraints = Self::compile_range_constraints()?;
         let verification_key = Self::generate_verification_key("range", &circuit_constraints)?;
@@ -406,7 +406,7 @@ impl ZkProofSystem {
         Ok(())
     }
     
-    /// Compile real cryptographic constraints for transaction proofs
+    /// Compile cryptographic constraints for transaction proofs
     fn compile_transaction_constraints() -> Result<Vec<u8>> {
         let mut constraints = Vec::new();
         
@@ -427,11 +427,11 @@ impl ZkProofSystem {
         constraints.extend_from_slice(b"RANGE_CONSTRAINT:");
         constraints.extend_from_slice(&[1, 1, 1, 0, 0]); // All values < 2^64
         
-        info!("Transaction constraints: {} bytes of real cryptographic constraints", constraints.len());
+        info!("Transaction constraints: {} bytes of cryptographic constraints", constraints.len());
         Ok(constraints)
     }
     
-    /// Compile real identity constraints with biometric privacy
+    /// Compile identity constraints with biometric privacy
     fn compile_identity_constraints() -> Result<Vec<u8>> {
         let mut constraints = Vec::new();
         
@@ -472,7 +472,7 @@ impl ZkProofSystem {
         Ok(b"DATA_INTEGRITY_CONSTRAINTS:erasure_coding".to_vec())
     }
     
-    /// Generate real verification key from circuit constraints
+    /// Generate verification key from circuit constraints
     fn generate_verification_key(circuit_name: &str, constraints: &[u8]) -> Result<Vec<u8>> {
         let mut key_material = Vec::new();
         key_material.extend_from_slice(b"ZHTP_VERIFICATION_KEY:");
@@ -487,7 +487,7 @@ impl ZkProofSystem {
         verification_key.extend_from_slice(&vk_hash); // Double for security
         verification_key.extend_from_slice(constraints);
         
-        info!("🔑 Verification key generated for {}: {} bytes", circuit_name, verification_key.len());
+        info!(" Verification key generated for {}: {} bytes", circuit_name, verification_key.len());
         Ok(verification_key)
     }
 
