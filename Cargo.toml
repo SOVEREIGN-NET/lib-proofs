@@ -41,9 +41,13 @@ name = "lib_proofs"
 path = "src/lib.rs"
 
 [features]
-default = ["std"]
+default = ["std", "plonky2-backend"]
 std = []
 # Production feature for optimized circuits
-production = []
+production = ["plonky2-backend"]
 # Development feature for testing
 dev = []
+# Plonky2 ZK backend (heavy compilation)
+plonky2-backend = []
+# Lightweight verification only (no proof generation)
+verify-only = []
