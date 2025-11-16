@@ -1380,10 +1380,10 @@ fn complete_application_example() -> Result<()> {
     
     println!("\n=== Application Scenarios Completed ===");
     println!("Demonstrated:");
-    println!("✓ Anonymous age verification");
-    println!("✓ Private financial transactions");
-    println!("✓ Confidential data storage with access control");
-    println!("✓ Anonymous network routing capabilities");
+    println!(" Anonymous age verification");
+    println!(" Private financial transactions");
+    println!(" Confidential data storage with access control");
+    println!(" Anonymous network routing capabilities");
     println!("All while preserving user privacy through zero-knowledge proofs!");
     
     Ok(())
@@ -2811,10 +2811,10 @@ fn complete_application_example() -> Result<()> {
     
     println!("\n=== Application Scenarios Completed ===");
     println!("Demonstrated:");
-    println!("✓ Anonymous age verification");
-    println!("✓ Private financial transactions");
-    println!("✓ Confidential data storage with access control");
-    println!("✓ Anonymous network routing capabilities");
+    println!(" Anonymous age verification");
+    println!(" Private financial transactions");
+    println!(" Confidential data storage with access control");
+    println!(" Anonymous network routing capabilities");
     println!("All while preserving user privacy through zero-knowledge proofs!");
     
     Ok(())

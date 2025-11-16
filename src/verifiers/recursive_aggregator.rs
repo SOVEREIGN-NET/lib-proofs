@@ -583,6 +583,16 @@ impl RecursiveProofAggregator {
     pub fn reset_stats(&mut self) {
         self.aggregation_stats = AggregationStats::new();
     }
+
+    /// Get a cached recursive proof at a specific height
+    pub fn get_recursive_proof(&self, height: u64) -> Option<&ChainRecursiveProof> {
+        self.proof_cache.get_recursive_proof(height)
+    }
+
+    /// Get a cached block proof at a specific height
+    pub fn get_block_proof(&self, height: u64) -> Option<&BlockAggregatedProof> {
+        self.proof_cache.get_block_proof(height)
+    }
 }
 
 impl RecursiveProofCache {

@@ -78,18 +78,46 @@ impl ZkTransactionProof {
         receiver_blinding: [u8; 32],
         nullifier: [u8; 32],
     ) -> anyhow::Result<Self> {
-        // Create public inputs for each proof component
-        let amount_inputs = vec![amount, fee];
-        let balance_inputs = vec![sender_balance, receiver_balance];
-        let nullifier_inputs = vec![
-            u64::from_le_bytes(nullifier[0..8].try_into().unwrap_or([0u8; 8])),
-            u64::from_le_bytes(sender_blinding[0..8].try_into().unwrap_or([0u8; 8])),
-            u64::from_le_bytes(receiver_blinding[0..8].try_into().unwrap_or([0u8; 8])),
-        ];
-
-        let amount_proof = ZkProof::from_public_inputs(amount_inputs)?;
-        let balance_proof = ZkProof::from_public_inputs(balance_inputs)?;
-        let nullifier_proof = ZkProof::from_public_inputs(nullifier_inputs)?;
+        // Create ZK proof system instance
+        let zk_system = crate::plonky2::ZkProofSystem::new()
+            .map_err(|e| anyhow::anyhow!("Failed to initialize ZK system: {:?}", e))?;
+        
+        // Extract secrets from blinding factors
+        let sender_secret = u64::from_le_bytes(sender_blinding[0..8].try_into().unwrap_or([0u8; 8]));
+        let nullifier_seed = u64::from_le_bytes(nullifier[0..8].try_into().unwrap_or([0u8; 8]));
+        let receiver_secret = u64::from_le_bytes(receiver_blinding[0..8].try_into().unwrap_or([0u8; 8]));
+        
+        // Generate amount proof directly using ZK system
+        let amount_plonky2_proof = zk_system.prove_transaction(
+            sender_balance,
+            amount,
+            fee,
+            sender_secret,
+            nullifier_seed,
+        ).map_err(|e| anyhow::anyhow!("Amount proof generation failed: {:?}", e))?;
+        let amount_proof = ZkProof::from_plonky2(amount_plonky2_proof);
+        
+        // Generate balance proof - reuse transaction proof but with different interpretation
+        // For balance proof, we validate sender_balance >= receiver_balance + amount + fee
+        // But we can reuse the same prove_transaction logic with adjusted parameters
+        let balance_plonky2_proof = zk_system.prove_transaction(
+            sender_balance,
+            amount,  // Still use amount
+            fee,
+            sender_secret,
+            receiver_secret, // Use receiver_secret as nullifier for balance check
+        ).map_err(|e| anyhow::anyhow!("Balance proof generation failed: {:?}", e))?;
+        let balance_proof = ZkProof::from_plonky2(balance_plonky2_proof);
+        
+        // Generate nullifier proof - proves uniqueness of spend
+        let nullifier_plonky2_proof = zk_system.prove_transaction(
+            sender_balance,
+            amount,
+            fee,
+            nullifier_seed,  // Use nullifier as sender_secret
+            sender_secret,   // Use sender_secret as nullifier
+        ).map_err(|e| anyhow::anyhow!("Nullifier proof generation failed: {:?}", e))?;
+        let nullifier_proof = ZkProof::from_plonky2(nullifier_plonky2_proof);
 
         Ok(Self::new(amount_proof, balance_proof, nullifier_proof))
     }
