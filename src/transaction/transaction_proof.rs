@@ -4,10 +4,10 @@
 //! Uses single ZK proof system for all transaction components.
 
 use serde::{Serialize, Deserialize};
-use crate::types::ZkProof;
+use crate::types::{ZkProof, ProofEnvelope};
 
 /// Zero-knowledge transaction proof (unified ZHTPDEV-main65 style)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct ZkTransactionProof {
     /// Amount proof using unified ZK system
     pub amount_proof: ZkProof,
@@ -109,6 +109,43 @@ impl Default for ZkTransactionProof {
             balance_proof: default_proof.clone(),
             nullifier_proof: default_proof,
         }
+    }
+}
+
+// Custom serialization: wrap ZkProof fields in ProofEnvelope at serialization boundary
+impl Serialize for ZkTransactionProof {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("ZkTransactionProof", 3)?;
+        state.serialize_field("amount_proof", &ProofEnvelope::borrow_v0(&self.amount_proof))?;
+        state.serialize_field("balance_proof", &ProofEnvelope::borrow_v0(&self.balance_proof))?;
+        state.serialize_field("nullifier_proof", &ProofEnvelope::borrow_v0(&self.nullifier_proof))?;
+        state.end()
+    }
+}
+
+// Custom deserialization: unwrap ProofEnvelope back to ZkProof
+impl<'de> Deserialize<'de> for ZkTransactionProof {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct ZkTransactionProofHelper {
+            amount_proof: ProofEnvelope,
+            balance_proof: ProofEnvelope,
+            nullifier_proof: ProofEnvelope,
+        }
+
+        let helper = ZkTransactionProofHelper::deserialize(deserializer)?;
+        Ok(ZkTransactionProof {
+            amount_proof: helper.amount_proof.into_inner(),
+            balance_proof: helper.balance_proof.into_inner(),
+            nullifier_proof: helper.nullifier_proof.into_inner(),
+        })
     }
 }
 

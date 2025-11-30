@@ -6,10 +6,10 @@
 use anyhow::Result;
 use serde::{Serialize, Deserialize};
 use lib_crypto::hashing::hash_blake3;
-use crate::types::zk_proof::ZkProof;
+use crate::types::zk_proof::{ZkProof, ProofEnvelope};
 
 /// Zero-knowledge range proof using unified Plonky2 system
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct ZkRangeProof {
     /// Unified ZK proof for range verification
     pub proof: ZkProof,
@@ -108,6 +108,46 @@ impl ZkRangeProof {
     pub fn is_standard_bulletproof(&self) -> bool {
         // All our range proofs use Plonky2 unified system, which is compatible
         true
+    }
+}
+
+// Custom serialization: wrap ZkProof in ProofEnvelope at serialization boundary
+impl Serialize for ZkRangeProof {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("ZkRangeProof", 4)?;
+        state.serialize_field("proof", &ProofEnvelope::borrow_v0(&self.proof))?;
+        state.serialize_field("commitment", &self.commitment)?;
+        state.serialize_field("min_value", &self.min_value)?;
+        state.serialize_field("max_value", &self.max_value)?;
+        state.end()
+    }
+}
+
+// Custom deserialization: unwrap ProofEnvelope back to ZkProof
+impl<'de> Deserialize<'de> for ZkRangeProof {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct ZkRangeProofHelper {
+            proof: ProofEnvelope,
+            commitment: [u8; 32],
+            min_value: u64,
+            max_value: u64,
+        }
+
+        let helper = ZkRangeProofHelper::deserialize(deserializer)?;
+        Ok(ZkRangeProof {
+            proof: helper.proof.into_inner(),
+            commitment: helper.commitment,
+            min_value: helper.min_value,
+            max_value: helper.max_value,
+        })
     }
 }
 
