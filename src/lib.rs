@@ -37,6 +37,7 @@ use anyhow::Result;
 
 // Re-export core types for unified ZK system
 pub use types::zk_proof::{ZkProof, ProofEnvelope};
+pub use types::zk_proof::ProofEnvelope as ZeroKnowledgeProof;
 pub use transaction::transaction_proof::ZkTransactionProof;
 pub use merkle::{tree::*, proof_generation::*, verification::*};
 pub use range::range_proof::ZkRangeProof;
