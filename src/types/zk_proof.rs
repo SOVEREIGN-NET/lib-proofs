@@ -175,7 +175,7 @@ impl ZkProofType {
     pub fn as_str(&self) -> &str {
         match self {
             ZkProofType::Transaction => "transaction",
-            ZkProofType::Identity => "identity", 
+            ZkProofType::Identity => "identity",
             ZkProofType::Range => "range",
             ZkProofType::Merkle => "merkle",
             ZkProofType::Storage => "storage",
@@ -197,6 +197,86 @@ impl ZkProofType {
             "data_integrity" => ZkProofType::DataIntegrity,
             custom => ZkProofType::Custom(custom.to_string()),
         }
+    }
+}
+
+/// ProofEnvelope V0 - Compatibility wrapper for legacy ZkProof
+///
+/// This envelope provides versioning support for the existing proof system
+/// without breaking changes. It enables gradual migration to a fully governed
+/// proof system (V1) in the future.
+///
+/// # Purpose
+/// - Add version tracking to legacy proofs
+/// - Enable safe migration path to ProofEnvelope V1
+/// - Maintain backward compatibility with existing code
+///
+/// # Version History
+/// - v0: Initial wrapper around legacy ZkProof (current)
+/// - v1: Full governance with ProofType enum (future - see ADR-0003)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProofEnvelope {
+    /// Version identifier for proof format evolution
+    /// Current: "v0" (legacy compatibility mode)
+    /// Future: "v1" (fully governed with ProofType enum)
+    pub version: String,
+
+    /// The actual proof data (legacy ZkProof structure)
+    pub proof: ZkProof,
+}
+
+impl ProofEnvelope {
+    /// Create a new V0 ProofEnvelope wrapping a ZkProof
+    pub fn new_v0(proof: ZkProof) -> Self {
+        Self {
+            version: "v0".to_string(),
+            proof,
+        }
+    }
+
+    /// Get the version of this proof envelope
+    pub fn version(&self) -> &str {
+        &self.version
+    }
+
+    /// Check if this is a V0 (legacy) proof
+    pub fn is_v0(&self) -> bool {
+        self.version == "v0"
+    }
+
+    /// Unwrap the inner proof (consumes the envelope)
+    pub fn into_inner(self) -> ZkProof {
+        self.proof
+    }
+
+    /// Get a reference to the inner proof
+    pub fn inner(&self) -> &ZkProof {
+        &self.proof
+    }
+
+    /// Get a mutable reference to the inner proof
+    pub fn inner_mut(&mut self) -> &mut ZkProof {
+        &mut self.proof
+    }
+}
+
+impl Default for ProofEnvelope {
+    fn default() -> Self {
+        Self::new_v0(ZkProof::default())
+    }
+}
+
+/// Automatic conversion from ZkProof to ProofEnvelope (V0)
+impl From<ZkProof> for ProofEnvelope {
+    fn from(proof: ZkProof) -> Self {
+        Self::new_v0(proof)
+    }
+}
+
+/// Automatic conversion from ProofEnvelope to ZkProof (unwrapping)
+impl From<ProofEnvelope> for ZkProof {
+    fn from(envelope: ProofEnvelope) -> Self {
+        envelope.into_inner()
     }
 }
 
@@ -250,5 +330,69 @@ mod tests {
         let proof = ZkProof::default();
         assert!(proof.is_empty());
         assert!(proof.is_plonky2());
+    }
+
+    #[test]
+    fn test_proof_envelope_v0_creation() {
+        let proof = ZkProof::default();
+        let envelope = ProofEnvelope::new_v0(proof.clone());
+
+        assert_eq!(envelope.version(), "v0");
+        assert!(envelope.is_v0());
+        assert_eq!(envelope.inner().proof_system, proof.proof_system);
+    }
+
+    #[test]
+    fn test_proof_envelope_automatic_wrapping() {
+        let proof = ZkProof::default();
+
+        // Test From<ZkProof> for ProofEnvelope
+        let envelope: ProofEnvelope = proof.clone().into();
+        assert_eq!(envelope.version(), "v0");
+
+        // Test From<ProofEnvelope> for ZkProof
+        let unwrapped: ZkProof = envelope.into();
+        assert_eq!(unwrapped.proof_system, proof.proof_system);
+    }
+
+    #[test]
+    fn test_proof_envelope_version_field() {
+        let proof = ZkProof::new(
+            "Plonky2".to_string(),
+            vec![1, 2, 3],
+            vec![4, 5, 6],
+            vec![7, 8, 9],
+            None,
+        );
+        let envelope = ProofEnvelope::new_v0(proof);
+
+        // Verify version field is set correctly
+        assert_eq!(envelope.version(), "v0");
+        assert_eq!(envelope.version, "v0");
+
+        // Verify inner proof is accessible
+        assert_eq!(envelope.inner().proof_system, "Plonky2");
+        assert_eq!(envelope.inner().proof_data, vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn test_proof_envelope_default() {
+        let envelope = ProofEnvelope::default();
+        assert_eq!(envelope.version(), "v0");
+        assert!(envelope.inner().is_empty());
+    }
+
+    #[test]
+    fn test_proof_envelope_inner_mutations() {
+        let proof = ZkProof::default();
+        let mut envelope = ProofEnvelope::new_v0(proof);
+
+        // Test mutable access
+        envelope.inner_mut().proof_system = "TestSystem".to_string();
+        assert_eq!(envelope.inner().proof_system, "TestSystem");
+
+        // Test into_inner consumes envelope
+        let inner = envelope.into_inner();
+        assert_eq!(inner.proof_system, "TestSystem");
     }
 }
