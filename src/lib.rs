@@ -81,7 +81,8 @@ pub mod state;
 pub mod recursive;
 
 // Type aliases for backward compatibility
-pub use types::zk_proof::ZkProof as ZeroKnowledgeProof;
+// Note: ZeroKnowledgeProof now points to ProofEnvelope (line 40) instead of ZkProof
+// This enables automatic versioning for all existing code using ZeroKnowledgeProof
 pub use types::MerkleProof;
 
 /// Initialize the unified ZK proof system
