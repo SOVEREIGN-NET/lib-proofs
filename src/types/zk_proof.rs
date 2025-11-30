@@ -7,6 +7,10 @@ use serde::{Serialize, Deserialize};
 use crate::plonky2::Plonky2Proof;
 
 /// Zero-knowledge proof (unified approach matching ZHTPDEV-main65)
+///
+/// NOTE: This struct has Serialize/Deserialize for internal use only.
+/// External/wire serialization MUST go through ProofEnvelope to ensure versioning.
+/// Container structs wrap this in ProofEnvelope at serialization boundaries.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ZkProof {
     /// Proof system identifier (always "Plonky2" for unified system)
@@ -264,11 +268,25 @@ impl<'de> Deserialize<'de> for ProofEnvelope {
             tracing::warn!("Missing version field in proof; assuming v0");
             default_version()
         });
+
+        // Strict validation: Only v0 is supported in alpha
         if version != "v0" {
-            tracing::warn!("ProofEnvelope version mismatch: {}", version);
+            return Err(D::Error::custom(format!(
+                "Unsupported proof version: {}. Only 'v0' is supported in this release.",
+                version
+            )));
         }
+
         Ok(ProofEnvelope { version, proof: mv.proof })
     }
+}
+
+/// Borrowed version of ProofEnvelope for zero-copy serialization
+#[derive(Serialize)]
+pub struct ProofEnvelopeRef<'a> {
+    version: &'a str,
+    #[serde(flatten)]
+    proof: &'a ZkProof,
 }
 
 impl ProofEnvelope {
@@ -276,6 +294,14 @@ impl ProofEnvelope {
     pub fn new_v0(proof: ZkProof) -> Self {
         Self {
             version: default_version(),
+            proof,
+        }
+    }
+
+    /// Create a borrowed reference wrapper for serialization (zero-copy)
+    pub fn borrow_v0(proof: &ZkProof) -> ProofEnvelopeRef {
+        ProofEnvelopeRef {
+            version: "v0",
             proof,
         }
     }
@@ -487,5 +513,53 @@ mod tests {
         let envelope: ProofEnvelope = serde_json::from_str(legacy_json).expect("deserialize legacy proof");
         assert_eq!(envelope.version(), "v0");
         assert_eq!(envelope.proof_system, "Plonky2");
+    }
+
+    #[test]
+    fn test_proof_envelope_rejects_unsupported_version() {
+        // Payload with unsupported version
+        let v1_json = r#"{
+            "version":"v1",
+            "proof_system":"Plonky2",
+            "proof_data":[1,2,3],
+            "public_inputs":[4,5,6],
+            "verification_key":[7,8,9],
+            "plonky2_proof":null,
+            "proof":[]
+        }"#;
+
+        let result: Result<ProofEnvelope, _> = serde_json::from_str(v1_json);
+        assert!(result.is_err(), "Should reject v1 version");
+        assert!(result.unwrap_err().to_string().contains("Unsupported proof version"));
+    }
+
+    #[test]
+    fn test_proof_envelope_accepts_v0_version() {
+        // Payload with explicit v0 version
+        let v0_json = r#"{
+            "version":"v0",
+            "proof_system":"Plonky2",
+            "proof_data":[1,2,3],
+            "public_inputs":[4,5,6],
+            "verification_key":[7,8,9],
+            "plonky2_proof":null,
+            "proof":[]
+        }"#;
+
+        let envelope: ProofEnvelope = serde_json::from_str(v0_json).expect("deserialize v0 proof");
+        assert_eq!(envelope.version(), "v0");
+        assert_eq!(envelope.proof_system, "Plonky2");
+    }
+
+    #[test]
+    fn test_proof_envelope_borrow_v0_no_clone() {
+        // Test zero-copy serialization with borrow_v0
+        let proof = ZkProof::default();
+        let borrowed = ProofEnvelope::borrow_v0(&proof);
+
+        // Serialize using borrowed version
+        let json = serde_json::to_value(&borrowed).expect("serialize borrowed");
+        assert_eq!(json["version"], "v0");
+        assert_eq!(json["proof_system"], "Plonky2");
     }
 }

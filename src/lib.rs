@@ -110,4 +110,28 @@ mod tests {
         let proof = create_default_proof();
         assert!(proof.is_empty());
     }
+
+    #[test]
+    fn test_version_markers_in_serialization() {
+        // Test ZkTransactionProof includes version markers
+        let tx_proof = crate::transaction::transaction_proof::ZkTransactionProof::default();
+        let json = serde_json::to_string(&tx_proof).unwrap();
+        assert!(json.contains("\"version\":\"v0\""), "ZkTransactionProof missing version marker");
+
+        // Test ZkRangeProof includes version marker
+        let range_proof = crate::range::range_proof::ZkRangeProof::generate_simple(50, 0, 100).unwrap();
+        let json = serde_json::to_string(&range_proof).unwrap();
+        assert!(json.contains("\"version\":\"v0\""), "ZkRangeProof missing version marker");
+
+        // Test ZkIdentityProof includes version marker
+        let attributes = crate::identity::identity_proof::IdentityAttributes::new();
+        let identity_proof = crate::identity::identity_proof::ZkIdentityProof::generate(
+            &attributes,
+            [1u8; 32],
+            [2u8; 32],
+            vec!["test".to_string()],
+        ).unwrap();
+        let json = serde_json::to_string(&identity_proof).unwrap();
+        assert!(json.contains("\"version\":\"v0\""), "ZkIdentityProof missing version marker");
+    }
 }

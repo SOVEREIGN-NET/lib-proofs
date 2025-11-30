@@ -6,7 +6,7 @@
 use anyhow::Result;
 use serde::{Serialize, Deserialize};
 use lib_crypto::hashing::hash_blake3;
-use crate::types::zk_proof::ZkProof;
+use crate::types::zk_proof::{ZkProof, ProofEnvelope};
 
 /// Identity attributes that can be proven in zero-knowledge
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -166,7 +166,7 @@ impl IdentityCommitment {
 }
 
 /// Zero-knowledge identity proof using unified Plonky2 system
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct ZkIdentityProof {
     /// Unified ZK proof for identity verification
     pub proof: ZkProof,
@@ -331,6 +331,46 @@ impl ZkIdentityProof {
         std::mem::size_of::<IdentityCommitment>() +
         self.proven_attributes.iter().map(|a| a.len()).sum::<usize>() +
         8 // timestamp
+    }
+}
+
+// Custom serialization: wrap ZkProof in ProofEnvelope at serialization boundary
+impl Serialize for ZkIdentityProof {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("ZkIdentityProof", 4)?;
+        state.serialize_field("proof", &ProofEnvelope::borrow_v0(&self.proof))?;
+        state.serialize_field("commitment", &self.commitment)?;
+        state.serialize_field("proven_attributes", &self.proven_attributes)?;
+        state.serialize_field("timestamp", &self.timestamp)?;
+        state.end()
+    }
+}
+
+// Custom deserialization: unwrap ProofEnvelope back to ZkProof
+impl<'de> Deserialize<'de> for ZkIdentityProof {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        struct ZkIdentityProofHelper {
+            proof: ProofEnvelope,
+            commitment: IdentityCommitment,
+            proven_attributes: Vec<String>,
+            timestamp: u64,
+        }
+
+        let helper = ZkIdentityProofHelper::deserialize(deserializer)?;
+        Ok(ZkIdentityProof {
+            proof: helper.proof.into_inner(),
+            commitment: helper.commitment,
+            proven_attributes: helper.proven_attributes,
+            timestamp: helper.timestamp,
+        })
     }
 }
 
