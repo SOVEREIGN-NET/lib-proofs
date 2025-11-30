@@ -175,7 +175,7 @@ impl ZkProofType {
     pub fn as_str(&self) -> &str {
         match self {
             ZkProofType::Transaction => "transaction",
-            ZkProofType::Identity => "identity", 
+            ZkProofType::Identity => "identity",
             ZkProofType::Range => "range",
             ZkProofType::Merkle => "merkle",
             ZkProofType::Storage => "storage",
@@ -200,9 +200,149 @@ impl ZkProofType {
     }
 }
 
+/// ProofEnvelope V0 - Compatibility wrapper for legacy ZkProof
+///
+/// This envelope provides versioning support for the existing proof system
+/// without breaking changes. It enables gradual migration to a fully governed
+/// proof system (V1) in the future.
+///
+/// # Purpose
+/// - Add version tracking to legacy proofs
+/// - Enable safe migration path to ProofEnvelope V1
+/// - Maintain backward compatibility with existing code
+///
+/// # Version History
+/// - v0: Initial wrapper around legacy ZkProof (current)
+/// - v1: Full governance with ProofType enum (future - see ADR-0003)
+#[derive(Debug, Clone)]
+pub struct ProofEnvelope {
+    /// Version identifier for proof format evolution (current: "v0")
+    pub version: String,
+    /// The actual proof data (legacy ZkProof structure), flattened during serde
+    pub proof: ZkProof,
+}
+
+fn default_version() -> String {
+    "v0".to_string()
+}
+
+impl Serialize for ProofEnvelope {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("ProofEnvelope", 1)?;
+        state.serialize_field("version", &self.version)?;
+        // Flatten proof fields
+        state.serialize_field("proof_system", &self.proof.proof_system)?;
+        state.serialize_field("proof_data", &self.proof.proof_data)?;
+        state.serialize_field("public_inputs", &self.proof.public_inputs)?;
+        state.serialize_field("verification_key", &self.proof.verification_key)?;
+        state.serialize_field("plonky2_proof", &self.proof.plonky2_proof)?;
+        state.serialize_field("proof", &self.proof.proof)?;
+        state.end()
+    }
+}
+
+impl<'de> Deserialize<'de> for ProofEnvelope {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::Error;
+
+        #[derive(Deserialize)]
+        struct MaybeVersionedProof {
+            version: Option<String>,
+            #[serde(flatten)]
+            proof: ZkProof,
+        }
+
+        let mv: MaybeVersionedProof = MaybeVersionedProof::deserialize(deserializer)?;
+        let version = mv.version.unwrap_or_else(|| {
+            tracing::warn!("Missing version field in proof; assuming v0");
+            default_version()
+        });
+        if version != "v0" {
+            tracing::warn!("ProofEnvelope version mismatch: {}", version);
+        }
+        Ok(ProofEnvelope { version, proof: mv.proof })
+    }
+}
+
+impl ProofEnvelope {
+    /// Create a new V0 ProofEnvelope wrapping a ZkProof
+    pub fn new_v0(proof: ZkProof) -> Self {
+        Self {
+            version: default_version(),
+            proof,
+        }
+    }
+
+    /// Get the version of this proof envelope
+    pub fn version(&self) -> &str {
+        &self.version
+    }
+
+    /// Check if this is a V0 (legacy) proof
+    pub fn is_v0(&self) -> bool {
+        self.version == "v0"
+    }
+
+    /// Unwrap the inner proof (consumes the envelope)
+    pub fn into_inner(self) -> ZkProof {
+        self.proof
+    }
+
+    /// Get a reference to the inner proof
+    pub fn inner(&self) -> &ZkProof {
+        &self.proof
+    }
+
+    /// Get a mutable reference to the inner proof
+    pub fn inner_mut(&mut self) -> &mut ZkProof {
+        &mut self.proof
+    }
+}
+
+impl Default for ProofEnvelope {
+    fn default() -> Self {
+        Self::new_v0(ZkProof::default())
+    }
+}
+
+/// Automatic conversion from ZkProof to ProofEnvelope (V0)
+impl From<ZkProof> for ProofEnvelope {
+    fn from(proof: ZkProof) -> Self {
+        Self::new_v0(proof)
+    }
+}
+
+/// Automatic conversion from ProofEnvelope to ZkProof (unwrapping)
+impl From<ProofEnvelope> for ZkProof {
+    fn from(envelope: ProofEnvelope) -> Self {
+        envelope.into_inner()
+    }
+}
+
+impl std::ops::Deref for ProofEnvelope {
+    type Target = ZkProof;
+    fn deref(&self) -> &Self::Target {
+        &self.proof
+    }
+}
+
+impl std::ops::DerefMut for ProofEnvelope {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.proof
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json;
 
     #[test]
     fn test_zk_proof_creation() {
@@ -250,5 +390,102 @@ mod tests {
         let proof = ZkProof::default();
         assert!(proof.is_empty());
         assert!(proof.is_plonky2());
+    }
+
+    #[test]
+    fn test_proof_envelope_v0_creation() {
+        let proof = ZkProof::default();
+        let envelope = ProofEnvelope::new_v0(proof.clone());
+
+        assert_eq!(envelope.version(), "v0");
+        assert!(envelope.is_v0());
+        assert_eq!(envelope.inner().proof_system, proof.proof_system);
+    }
+
+    #[test]
+    fn test_proof_envelope_automatic_wrapping() {
+        let proof = ZkProof::default();
+
+        // Test From<ZkProof> for ProofEnvelope
+        let envelope: ProofEnvelope = proof.clone().into();
+        assert_eq!(envelope.version(), "v0");
+
+        // Test From<ProofEnvelope> for ZkProof
+        let unwrapped: ZkProof = envelope.into();
+        assert_eq!(unwrapped.proof_system, proof.proof_system);
+    }
+
+    #[test]
+    fn test_proof_envelope_version_field() {
+        let proof = ZkProof::new(
+            "Plonky2".to_string(),
+            vec![1, 2, 3],
+            vec![4, 5, 6],
+            vec![7, 8, 9],
+            None,
+        );
+        let envelope = ProofEnvelope::new_v0(proof);
+
+        // Verify version field is set correctly
+        assert_eq!(envelope.version(), "v0");
+        assert_eq!(envelope.version, "v0");
+
+        // Verify inner proof is accessible
+        assert_eq!(envelope.inner().proof_system, "Plonky2");
+        assert_eq!(envelope.inner().proof_data, vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn test_proof_envelope_default() {
+        let envelope = ProofEnvelope::default();
+        assert_eq!(envelope.version(), "v0");
+        assert!(envelope.inner().is_empty());
+    }
+
+    #[test]
+    fn test_proof_envelope_inner_mutations() {
+        let proof = ZkProof::default();
+        let mut envelope = ProofEnvelope::new_v0(proof);
+
+        // Test mutable access
+        envelope.inner_mut().proof_system = "TestSystem".to_string();
+        assert_eq!(envelope.inner().proof_system, "TestSystem");
+
+        // Test into_inner consumes envelope
+        let inner = envelope.into_inner();
+        assert_eq!(inner.proof_system, "TestSystem");
+    }
+
+    #[test]
+    fn test_proof_envelope_serialization_includes_version() {
+        let proof = ZkProof::new(
+            "Plonky2".to_string(),
+            vec![1, 2, 3],
+            vec![4, 5, 6],
+            vec![7, 8, 9],
+            None,
+        );
+        let envelope: ProofEnvelope = proof.into();
+
+        let json = serde_json::to_string(&envelope).expect("serialize envelope");
+        assert!(json.contains("\"version\":\"v0\""), "serialized envelope must include version");
+        assert!(json.contains("\"proof_system\":\"Plonky2\""), "proof fields must be serialized");
+    }
+
+    #[test]
+    fn test_proof_envelope_deserializes_legacy_proof_without_version() {
+        // Legacy payload without version field
+        let legacy_json = r#"{
+            "proof_system":"Plonky2",
+            "proof_data":[1,2,3],
+            "public_inputs":[4,5,6],
+            "verification_key":[7,8,9],
+            "plonky2_proof":null,
+            "proof":[]
+        }"#;
+
+        let envelope: ProofEnvelope = serde_json::from_str(legacy_json).expect("deserialize legacy proof");
+        assert_eq!(envelope.version(), "v0");
+        assert_eq!(envelope.proof_system, "Plonky2");
     }
 }
